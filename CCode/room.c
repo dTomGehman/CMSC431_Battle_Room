@@ -95,6 +95,7 @@
 		take_damage(target,attacker->damage);
 
         char result[12];
+        sprintf(result, "%d", attacker->damage);
 		char *msg = malloc((strlen(attacker->name)+strlen(target->name)+strlen(result)+26)*sizeof(char));
 		msg[0] = '\0';
 		strcpy(msg,attacker->name);
