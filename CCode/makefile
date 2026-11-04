@@ -1,10 +1,11 @@
-SOURCES = entity.c room.c runner.c
-OBJECTS = entity.o room.o runner.o
+SOURCES = entity.c room.c server.c
+OBJECTS = entity.o room.o server.o
 HEADERS = entity.h room.h
 CC = gcc
 CFLAGS = 
 
-Youtube: $(OBJECTS)
-	$(CC) $(SOURCES) $(CFLAGS) -o BattleRoom
+bruh: $(OBJECTS)
+	$(CC) $(SOURCES) $(CFLAGS) -o battleroom
+	$(CC) client.c -o client
 clean:
-	rm -fR *o BattleRoom	
+	rm -fR *o battleroom client
