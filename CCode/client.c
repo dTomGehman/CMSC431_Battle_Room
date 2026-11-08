@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -27,9 +27,26 @@ int main(int argc, char**argv) {
         exit(1);
     }
 
+    printf("Enter player name:  ");
+    fgets(buff, sizeof(buff), stdin);
+    if (strlen(buff)<2) {
+        fprintf(stderr, "Bad name\n");
+        close(sockfd);
+        exit(1);
+    }
+    sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
+ 
+    printf("Enter actions (0/1/2) or e to exit\n");
+    printf(" 0:Defend 1:Attack 2:Heal\n");
     while(1){
-        printf("Enter message:  ");
         fgets(buff, sizeof(buff), stdin);
+        if (buff[0] == 'e') {
+            break;
+        }
+        if (strlen(buff)!=2 || buff[0] < '0' || buff[0] > '2') {
+            fprintf(stderr, "Error:  enter a single char:  0, 1, 2, or e\n");
+            continue;
+        }
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
     }
     close(sockfd);
