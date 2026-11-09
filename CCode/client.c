@@ -9,12 +9,17 @@
 
 #define PORT 9001
 #define BUFFSIZE 100
+#define NAMESIZE 20
 
 int main(int argc, char**argv) {
     struct sockaddr_in server_addr;
-    int sockfd;
     bzero(&server_addr, sizeof(server_addr));
+    int sockfd;
+    int sequence=0;
+    char seq_str[BUFFSIZE-NAMESIZE-5];
     char buff[BUFFSIZE];
+    char name[NAMESIZE];
+
     printf("Enter address to connect (port %d):  ", PORT);
     fgets(buff, sizeof(buff), stdin);
     server_addr.sin_addr.s_addr = inet_addr(buff);
@@ -27,26 +32,39 @@ int main(int argc, char**argv) {
         exit(1);
     }
 
-    printf("Enter player name:  ");
-    fgets(buff, sizeof(buff), stdin);
-    if (strlen(buff)<2) {
+    printf("Enter player name (max len - %d chars):  ", NAMESIZE);
+    fgets(name, sizeof(name), stdin);
+    int namelen = strlen(name);
+    if (namelen<2) {
         fprintf(stderr, "Bad name\n");
         close(sockfd);
         exit(1);
     }
+
+    if (name[namelen-1]=='\n') name[namelen-1]='\0';
+    sprintf(buff, "%s`a`%d", name, sequence);
     sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
  
-    printf("Enter actions (0/1/2) or e to exit\n");
+    printf("\nEnter actions (0/1/2) or e to exit\n");
     printf(" 0:Defend 1:Attack 2:Heal\n");
+    char action;
     while(1){
-        fgets(buff, sizeof(buff), stdin);
-        if (buff[0] == 'e') {
+        scanf(" %c", &action); 
+
+        if (action=='e') {
+            sprintf(buff, "%s`e`%d", name, ++sequence);
+            sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
             break;
         }
-        if (strlen(buff)!=2 || buff[0] < '0' || buff[0] > '2') {
+ 
+        if (action < '0' || action > '2') {
             fprintf(stderr, "Error:  enter a single char:  0, 1, 2, or e\n");
             continue;
         }
+        sequence++;
+
+        sprintf(buff, "%s`%c`%d", name, action, sequence);
+
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
     }
     close(sockfd);
