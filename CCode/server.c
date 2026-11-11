@@ -10,12 +10,23 @@
 #include "room.h"
 
 #define PORT 9001
+#define NAMELEN 20
 
 struct Room *room;
 
 void*run_game(void*arg) {
     run(room);
 }
+
+void parse_input(char*buffer, char*player_name, char*action, int*seq){
+    char*str = strtok(buffer, "`");
+    strncpy(player_name, str, NAMELEN);
+    str = strtok(NULL, "`");
+    *action = str[0];
+    str = strtok(NULL, "`");
+    *seq = atoi(str);
+}
+
 
 int main(int argc, char**argv) {
 
@@ -35,11 +46,15 @@ int main(int argc, char**argv) {
 
     //test receiving data
     char buffer[100];
+    char player_name[NAMELEN+1];
+    char action;
+    int seq;
     len = sizeof(client_addr);
     while (1){
         int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &len);
         buffer[n] = '\0';
-        printf("%s\n", buffer);
+        parse_input(buffer, player_name, &action, &seq);
+        printf("%s %c %d\n", player_name, action, seq);
     }
 
     exit(0);
@@ -65,7 +80,7 @@ int main(int argc, char**argv) {
 //    pthread_create(&th_run_game, NULL, run_game, NULL);
 
     char buff[30];
-    int action, tmp_player;
+    //int action, tmp_player;
 
 /*    while (1) {
         fgets(buff, sizeof(buff), stdin);
