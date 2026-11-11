@@ -14,6 +14,16 @@
 
 struct Room *room;
 
+struct node {
+    char player_name[NAMELEN+1];
+    int seq;
+    struct node *next;
+};
+
+struct playerlist {
+    struct node *head;
+};
+
 void*run_game(void*arg) {
     run(room);
 }
@@ -27,12 +37,112 @@ void parse_input(char*buffer, char*player_name, char*action, int*seq){
     *seq = atoi(str);
 }
 
+void list_add_player(struct playerlist*players, char*player_name, int seq){
+    struct node*new = malloc(sizeof(struct node));
+    if (new == NULL) {fprintf(stderr, "malloc fail\n"); return;}
+
+    new -> seq = seq;
+    strcpy(new->player_name, player_name);
+    new -> next = NULL;
+
+    struct node*end = players->head;
+    if (end==NULL) {players->head = new; return;}
+    while (end->next != NULL) end = end->next;
+    end->next = new;
+}
+
+void list_print_players(struct playerlist*players){
+    printf("\n");
+    if (players->head == NULL) return;
+    struct node*work = players->head;
+    while (work != NULL) {
+        printf("%s ", work->player_name);
+        work = work->next;
+    }
+    printf("\n\n");
+}
+
+void list_remove_player(struct playerlist*players, char*player_name) {
+    if (players->head == NULL) return;
+    struct node*work = players->head;
+    if (!strcmp(player_name, work->player_name)) {
+        players->head = work->next;
+        free(work);
+        return;
+    }
+    while (work->next != NULL) {
+        if (!strcmp(player_name, work->next->player_name)) {
+            struct node*temp = work->next;
+            work->next = work->next->next;
+            free(temp);
+            return;
+        }
+        work = work->next;
+    }
+}
+
+
+    
 
 int main(int argc, char**argv) {
 
     //create room
     room = malloc(sizeof(struct Room));
     initialize_room(room,1.0,20000);
+
+    //create list
+    struct playerlist players;
+    players.head = NULL;
+
+    printf("nothing\n");
+    list_print_players(&players);
+
+    list_add_player(&players, "Tom", 0);
+    printf("add tom\n");
+    list_print_players(&players);
+
+    list_add_player(&players, "Daniel", 0);
+    printf("add daniel\n");
+    list_print_players(&players);
+
+    list_add_player(&players, "Bryton", 0);
+    printf("add bryton\n");
+    list_print_players(&players);
+
+    list_remove_player(&players, "Daniel");
+    printf("remove daniel\n");
+    list_print_players(&players);
+
+    printf("remove Joe (nonexistent)\n");
+    list_remove_player(&players, "Joe");
+    list_print_players(&players);
+
+    list_remove_player(&players, "Tom");
+    printf("remove tom\n");
+    list_print_players(&players);
+
+    list_add_player(&players, "Daniel", 0);
+    printf("add daniel\n");
+    list_print_players(&players);
+
+    list_remove_player(&players, "Daniel");
+    printf("remove daniel\n");
+    list_print_players(&players);
+
+    list_remove_player(&players, "Bryton");
+    printf("remove Bryton\n");
+    list_print_players(&players);
+
+    list_remove_player(&players, "Daniel");
+    printf("remove daniel (empty)\n");
+    list_print_players(&players);
+
+    list_add_player(&players, "Tom", 0);
+    printf("add tom\n");
+    list_print_players(&players);
+
+    exit(0);
+
 
     //create socket
     int sockfd, len;
@@ -54,7 +164,7 @@ int main(int argc, char**argv) {
         int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &len);
         buffer[n] = '\0';
         parse_input(buffer, player_name, &action, &seq);
-        printf("%s %c %d\n", player_name, action, seq);
+        printf("Received %c from %s, seq %d\n", action, player_name, seq);
     }
 
     exit(0);
