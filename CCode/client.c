@@ -32,14 +32,20 @@ int main(int argc, char**argv) {
         exit(1);
     }
 
-    printf("Enter player name (max len - %d chars):  ", NAMESIZE);
+    printf("Enter player name (max len is %d chars):  ", NAMESIZE);
     fgets(name, sizeof(name), stdin);
     int namelen = strlen(name);
     if (namelen<2) {
-        fprintf(stderr, "Bad name\n");
+        fprintf(stderr, "Bad name--must not be empty\n");
         close(sockfd);
         exit(1);
     }
+    for (int x = 0; x < namelen; x++) if (name[x] == '`') {
+        fprintf(stderr, "Bad name--please don't use backquotes (`)\n");
+        close(sockfd);
+        exit(1);
+    }
+
 
     if (name[namelen-1]=='\n') name[namelen-1]='\0';
     sprintf(buff, "%s`a`%d", name, sequence);
