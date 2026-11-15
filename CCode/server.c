@@ -71,6 +71,7 @@ struct Entity*list_get_player(struct playerlist*players, char*player_name) {
         if (!strcmp(player_name, work->player_name)) {
             return work->me;
         }
+        work = work->next;
     }
     return NULL;
 }

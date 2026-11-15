@@ -190,7 +190,7 @@
 					name[0] = '\0';
 					strcpy(name,"Creature");
 					strcat(name,result);
-					initialize_entity(creature,name,100,100,10,0.6,1000,5000);
+					initialize_entity(creature,name,20,20,10,0.6,1000,5000);
 					add_creature(room,creature);
 				}
 				last_spawn_check = present_time;
