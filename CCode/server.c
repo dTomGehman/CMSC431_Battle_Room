@@ -133,8 +133,13 @@ int main(int argc, char**argv) {
     len = sizeof(client_addr);
     while (1){
         int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &len);
+        printf("received from %s\n", inet_ntoa(client_addr.sin_addr));
         buffer[n] = '\0';
         parse_input(buffer, player_name, &action, &seq);
+
+        char*m = "test test received\n";
+        sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
+
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
             initialize_entity(me,player_name,100,100,10,0.6,1000,5000);

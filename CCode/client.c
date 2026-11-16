@@ -6,15 +6,26 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define PORT 9001
 #define BUFFSIZE 100
 #define NAMESIZE 20
 
+int sockfd;
+
+void*receive(void*arg){
+    char buff2[BUFFSIZE];
+    while(1){
+        recvfrom(sockfd, buff2, sizeof(buff2), 0, (struct sockaddr*)NULL, NULL);
+        puts(buff2);
+    }
+}
+
 int main(int argc, char**argv) {
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
-    int sockfd;
+    //int sockfd;
     int sequence=0;
     char seq_str[BUFFSIZE-NAMESIZE-5];
     char buff[BUFFSIZE];
@@ -50,6 +61,9 @@ int main(int argc, char**argv) {
     if (name[namelen-1]=='\n') name[namelen-1]='\0';
     sprintf(buff, "%s`a`%d", name, sequence);
     sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, receive, NULL);
  
     printf("\nEnter actions (0/1/2) or e to exit\n");
     printf(" 0:Defend 1:Attack 2:Heal\n");
@@ -73,5 +87,7 @@ int main(int argc, char**argv) {
 
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
     }
+    pthread_join(thread, NULL);
     close(sockfd);
+    
 }
