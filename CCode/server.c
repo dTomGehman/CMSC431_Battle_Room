@@ -103,10 +103,6 @@ void list_remove_player(struct playerlist*players, char*player_name) {
 
 int main(int argc, char**argv) {
 
-    //create room
-    room = malloc(sizeof(struct Room));
-    initialize_room(room,1.0,20000);
-
     //create list
     struct playerlist players;
     players.head = NULL;
@@ -121,6 +117,10 @@ int main(int argc, char**argv) {
     server_addr.sin_port = htons(PORT);
     server_addr.sin_family = AF_INET;
     bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+
+    //create room
+    room = malloc(sizeof(struct Room));
+    initialize_room(room,1.0,20000, sockfd);
 
     pthread_t th_run_game;
     pthread_create(&th_run_game, NULL, run_game, NULL);
@@ -142,7 +142,9 @@ int main(int argc, char**argv) {
 
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
-            initialize_entity(me,player_name,100,100,10,0.6,1000,5000);
+            struct sockaddr_in*copy = malloc(sizeof(client_addr)); //remember to free this later
+            memcpy(copy, &client_addr, sizeof(client_addr));
+            initialize_entity(me,player_name,100,100,10,0.6,1000,5000, copy, sizeof(client_addr));
             add_player(room, me);
             list_add_player(&players, player_name, 0,  me);
             printf("%s Has joined the room\n", player_name);

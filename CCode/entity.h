@@ -2,6 +2,8 @@
 #define ENTITY_H
 
 #include <time.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 struct Entity
 {
@@ -27,9 +29,12 @@ struct Entity
 	 *  2 : Heal (5 health, only once per heal_rate)
 	 */
 	int action;  // Ideally would have an enum for this
+    
+    struct sockaddr_in *addr;
+    size_t addr_s;
 };	
 
-void initialize_entity(struct Entity *entity, char *n, int h, int mh, int d, double hc, int ar, int hr);
+void initialize_entity(struct Entity *entity, char *n, int h, int mh, int d, double hc, int ar, int hr, struct sockaddr_in*s, size_t sst);
 void heal(struct Entity *entity, long time);
 void set_action(struct Entity *entity, int value);
 void take_damage(struct Entity *entity, int dmg);

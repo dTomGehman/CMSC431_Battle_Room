@@ -1,10 +1,11 @@
 #include <string.h>
+#include <sys/socket.h>
 
 #include "entity.h"
 
  
 
-	void initialize_entity(struct Entity *entity, char *n, int h, int mh, int d, double hc, int ar, int hr)
+	void initialize_entity(struct Entity *entity, char *n, int h, int mh, int d, double hc, int ar, int hr, struct sockaddr_in*s, size_t sst)
 	{
 		clock_t CLOCKS_PER_MILI = CLOCKS_PER_SEC / 1000;
 		
@@ -20,6 +21,8 @@
 		entity->last_attack = 0;
 		entity->last_heal = 0;
 		entity->action = -1;
+        entity->addr = s;
+        entity->addr_s = sst;
 	}
 	
 	void heal(struct Entity *entity, long time)

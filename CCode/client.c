@@ -17,6 +17,7 @@ int sockfd;
 void*receive(void*arg){
     char buff2[BUFFSIZE];
     while(1){
+        bzero(buff2, BUFFSIZE);
         recvfrom(sockfd, buff2, sizeof(buff2), 0, (struct sockaddr*)NULL, NULL);
         puts(buff2);
     }

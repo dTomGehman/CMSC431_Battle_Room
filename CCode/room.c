@@ -2,13 +2,18 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "room.h"
 
+#define BUFFSIZE 100
+
     clock_t present_time = 0;
 	int run_flag = 1;
+    char buff[BUFFSIZE];
 	 
-	void initialize_room(struct Room *room, double sc, int cs)
+	void initialize_room(struct Room *room, double sc, int cs, int sockfd)
 	{
 		room->creatures = malloc(10*sizeof(struct Entity*));
 		room->num_creatures = 0;
@@ -22,6 +27,7 @@
 		room ->spawn_chance = sc;
 		room->check_spawn = cs;
 		room->creatureID = 1;
+        room->sockfd = sockfd;
 	}
 
     void add_creature(struct Room *room,struct Entity *creature)
@@ -128,7 +134,11 @@
 	{
 		for (int i=0;i<room->num_messages;i++)
 		{
-			printf("%s\n",room->messages[i]);
+//            strncpy(buff, room->messages[i], BUFFSIZE);
+			printf("%s\n",buff);
+            for (int j=0; j<room->num_players; j++){
+                sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);
+            }
 			free(room->messages[i]);
 			room->messages[i] = NULL;
 		}
@@ -190,7 +200,7 @@
 					name[0] = '\0';
 					strcpy(name,"Creature");
 					strcat(name,result);
-					initialize_entity(creature,name,20,20,10,0.6,1000,5000);
+					initialize_entity(creature,name,20,20,10,0.6,1000,5000, NULL, 0);
 					add_creature(room,creature);
 				}
 				last_spawn_check = present_time;

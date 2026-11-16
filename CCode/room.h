@@ -26,9 +26,10 @@ struct Room
 	int check_spawn;
 	
 	int creatureID;
+    int sockfd;
 };
 
-void initialize_room(struct Room *room, double sc, int cs);
+void initialize_room(struct Room *room, double sc, int cs, int sockfd);
 void add_creature(struct Room *room,struct Entity *creature);
 void add_message(struct Room *room,char *msg);
 void add_player(struct Room *room, struct Entity *player);
