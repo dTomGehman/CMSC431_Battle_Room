@@ -134,7 +134,9 @@
 	{
 		for (int i=0;i<room->num_messages;i++)
 		{
-//            strncpy(buff, room->messages[i], BUFFSIZE);
+//            bzero(buff, BUFFSIZE);
+//            strncpy(buff, room->messages[i], strlen(room->messages[i]));
+            char*buff = room->messages[i];
 			printf("%s\n",buff);
             for (int j=0; j<room->num_players; j++){
                 sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);
