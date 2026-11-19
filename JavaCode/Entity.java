@@ -1,3 +1,4 @@
+import java.net.InetAddress;
 
 public class Entity
 {
@@ -7,12 +8,12 @@ public class Entity
 	private int damage = 10;
 	private double hit_chance = 0.6;
 	/**
-	 * Kept in terms of milliseconds.
+	 * in terms of milliseconds.
 	 */
-	private int attack_rate = 1000; 
+	private int attack_rate = 1000;
 	private int heal_rate = 5000;
-	
-	
+
+
 	private long start_time;
 	private long last_attack = 0;
 	private long last_heal = 0;
@@ -24,10 +25,13 @@ public class Entity
 	 *  2 : Heal (5 health, only once per heal_rate)
 	 */
 	private int action = -1;  // Ideally would have an enum for this
-	
+
+	private InetAddress addr;
+	private int port;
+
 	public Entity()
 	{
-		// Just use the default values.
+		//default
 	}
 	public Entity(String n, int h, int mh, int d, double hc, int ar, int hr)
 	{
@@ -40,47 +44,70 @@ public class Entity
 		heal_rate = hr;
 		start_time = System.currentTimeMillis();
 	}
-	
+	public Entity(String n, int h, int mh, int d, double hc, int ar, int hr, InetAddress a, int p)
+	{
+		name = n;
+		health = h;
+		max_health = mh;
+		damage = d;
+		hit_chance = hc;
+		attack_rate = ar;
+		heal_rate = hr;
+		start_time = System.currentTimeMillis();
+		addr = a;
+		port = p;
+	}
+
+	public InetAddress getAddr()
+	{
+		return addr;
+	}
+
+	public int getPort()
+	{
+		return port;
+	}
+
 	public int getAction()
 	{
 		return action;
 	}
-	
+
 	public int getAttackRate()
 	{
 		return attack_rate;
 	}
-	
+
 	public int getDamage()
 	{
 		return damage;
 	}
-	
+
 	public int getHealRate()
 	{
 		return heal_rate;
 	}
-	
+
 	public int getHealth()
 	{
 		return health;
 	}
-	
+
 	public long getLastAttack()
 	{
 		return last_attack;
 	}
-	
+
 	public long getLastHeal()
 	{
 		return last_heal;
 	}
-	
+
 	public String getName()
 	{
 		return name;
 	}
-	
+
 	public void heal(long time)
 	{
 		health += 5;
@@ -88,9 +115,10 @@ public class Entity
 			health = max_health;
 		last_heal = time;
 	}
-	
+
+
 	/**
-	 * Updates the value in action, if outside the allowed actions sets it to -1 (do nothing).
+	 * Updates the value in action, if outside the allowed actions sets it to -1
 	 * @param value
 	 */
 	public void setAction(int value)
@@ -101,17 +129,17 @@ public class Entity
 			action = -1;
 		}
 	}
-	
+
 	public void setLastAttack(long time)
 	{
 		last_attack = time;
 	}
-	
-	
+
+
 	public void takeDamage(int dmg)
 	{
 		if (action != 0)
-		    health -= dmg;
+			health -= dmg;
 		else  // We are defending.
 			health -= dmg/2;
 		if (health < 0)

@@ -1,3 +1,5 @@
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.util.ArrayList;
 
 /**
@@ -15,24 +17,45 @@ public class Room extends Thread
 	 * Kept in milliseconds.
 	 */
 	private int check_spawn = 1000;
-	
+
 	private boolean run = true;
-	
+
 	private long presentTime;
 	private int creatureID = 1;
-	
+	private DatagramSocket sockfd;
+
 	public Room(double sc, int cs)
 	{
 		spawn_chance = sc;
 		check_spawn = cs;
 	}
-	
+
+	public Room(double sc, int cs, DatagramSocket s)
+	{
+		spawn_chance = sc;
+		check_spawn = cs;
+		sockfd = s;
+	}
+
 	public void addPlayer(Entity player)
 	{
 		players.add(player);
 		messages.add(player.getName()+" has entered the room.");
 	}
-	
+
+	public void removePlayer(String name)
+	{
+		for (int i = 0; i < players.size(); i++)
+		{
+			if (players.get(i).getName().equals(name))
+			{
+				players.remove(i);
+				messages.add(name+" has left the room.");
+				break;
+			}
+		}
+	}
+
 	private void attackRandomEntity(Entity attacker,ArrayList<Entity> options)
 	{
 		int index = (int)(Math.random()*options.size());
@@ -46,22 +69,44 @@ public class Room extends Thread
 			options.remove(index);
 			messages.add(target.getName()+" killed.");
 		}
-			
+
 	}
-	
+
 	private void printMessages()
 	{
 		while (messages.size() > 0)
 		{
-			System.out.println(messages.get(0));
+			String buff = messages.get(0);
+			System.out.println(buff);
+			if (sockfd != null)
+			{
+				byte[] data = buff.getBytes();
+				for (int j = 0; j < players.size(); j++)
+				{
+					Entity p = players.get(j);
+					if (p != null && p.getAddr() != null)
+					{
+						try
+						{
+							DatagramPacket packet = new DatagramPacket(data, data.length, p.getAddr(), p.getPort());
+							sockfd.send(packet);
+						}
+						catch (Exception e)
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+			}
 			messages.remove(0);
 		}
 	}
-	
+
 	private void processActions(ArrayList<Entity> entities,ArrayList<Entity> targets)
 	{
-		for (Entity entity : entities)
+		for (int i = 0; i < entities.size(); i++)
 		{
+			Entity entity = entities.get(i);
 			int action = entity.getAction();
 			if ((action == 1) && (targets.size() > 0))
 			{
@@ -77,14 +122,14 @@ public class Room extends Thread
 				if ((presentTime - lastHeal) > entity.getHealRate())
 				{
 					int entityHealth = entity.getHealth();
-			        entity.heal(presentTime);
-			        messages.add(entity.getName()+" healed for "+(entity.getHealth()-entityHealth));
+					entity.heal(presentTime);
+					messages.add(entity.getName()+" healed for "+(entity.getHealth()-entityHealth));
 				}
-					
+
 			}
 		}
 	}
-	
+
 	public void run()
 	{
 		long startTime = System.currentTimeMillis();
@@ -97,31 +142,32 @@ public class Room extends Thread
 				double check = Math.random();
 				if (spawn_chance > check)
 				{
-					Entity creature = new Entity("Creature"+creatureID,100,100,10,0.6,1000,5000);
+					Entity creature = new Entity("Creature"+creatureID,20,20,10,0.6,1000,5000);
 					creatures.add(creature);
 					messages.add(creature.getName()+" has entered the room.");
 					creatureID++;
 				}
 				lastSpawnCheck = presentTime;
 			}
-			
+
 			processActions(players,creatures);
 			processActions(creatures,players);
-			
+
 			updateCreatureAction();
 			printMessages();
 		}
 	}
-	
+
 	public void setRun(boolean value)
 	{
 		run = value;
 	}
-	
+
 	private void updateCreatureAction()
 	{
-		for (Entity creature : creatures)
+		for (int i = 0; i < creatures.size(); i++)
 		{
+			Entity creature = creatures.get(i);
 			long lastAttack = creature.getLastAttack();
 			if ((presentTime - lastAttack) > creature.getAttackRate())
 				creature.setAction(1); // Can attack so do that.
