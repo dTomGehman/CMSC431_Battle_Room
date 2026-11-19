@@ -2,12 +2,15 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+
 public class Server
 {
     public static final int PORT = 9001;
     public static final int NAMELEN = 20;
 
     static Room room;
+    static PrintWriter logFile;
+    static String localIP = "127.0.0.1";
 
     static class Node
     {
@@ -24,6 +27,14 @@ public class Server
     }
 
     static ArrayList<Node> players = new ArrayList<Node>();
+
+    public static synchronized void logMessage(String direction, String actionInfo, String fromIP, String toIP)
+    {
+        if (logFile != null)
+        {
+            logFile.println("[" + direction + "] Action: " + actionInfo + " | From: " + fromIP + " | To: " + toIP);
+        }
+    }
 
     public static void list_add_player(String player_name, int seq, Entity me)
     {
@@ -75,22 +86,28 @@ public class Server
 
     public static void main(String[] args) throws Exception
     {
+        // open server log file
+        logFile = new PrintWriter(new FileWriter("server_log.txt", false), true);
+        localIP = InetAddress.getLocalHost().getHostAddress();
+
         // create socket
         DatagramSocket sockfd = new DatagramSocket(PORT);
 
         // create room
         room = new Room(1.0, 20000, sockfd);
 
-        // start thread
+        //start thread to run the game
         room.start();
 
-        // receive data from clients (joining, actions, exiting)
+        //receive data from clients
         byte[] buffer = new byte[100];
 
         while (true)
         {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             sockfd.receive(packet);
+
+            String fromIP = packet.getAddress().getHostAddress();
 
             // message consists of NAME`ACTION`SEQ
             String msg = new String(packet.getData(), 0, packet.getLength()).trim();
@@ -104,6 +121,8 @@ public class Server
             String player_name = parts[0];
             char action = parts[1].charAt(0);
             int seq = Integer.parseInt(parts[2].trim());
+
+            logMessage("RECV", msg, fromIP, localIP);
 
             if (action == 'a')
             {
@@ -152,7 +171,7 @@ public class Server
                 }
             }
 
-            // for debugging
+
             System.out.println("Received action " + action + " from " + player_name + ", seq " + seq);
         }
     }

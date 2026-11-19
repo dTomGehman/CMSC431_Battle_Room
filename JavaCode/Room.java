@@ -90,6 +90,7 @@ public class Room extends Thread
 						{
 							DatagramPacket packet = new DatagramPacket(data, data.length, p.getAddr(), p.getPort());
 							sockfd.send(packet);
+							Server.logMessage("SENT", buff, Server.localIP, p.getAddr().getHostAddress());
 						}
 						catch (Exception e)
 						{
@@ -170,14 +171,14 @@ public class Room extends Thread
 			Entity creature = creatures.get(i);
 			long lastAttack = creature.getLastAttack();
 			if ((presentTime - lastAttack) > creature.getAttackRate())
-				creature.setAction(1); // Can attack so do that.
+				creature.setAction(1); //attack
 			else
 			{
 				long lastHeal = creature.getLastHeal();
 				if ((presentTime - lastHeal) > creature.getHealRate())
-					creature.setAction(2); // If can't attack, but can heal do that.
+					creature.setAction(2); //If can't attacK but can heal do that.
 				else
-					creature.setAction(0); // If can't attack or heal just defend.
+					creature.setAction(0); //If can't attack or heal then defend.
 			}
 		}
 	}

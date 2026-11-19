@@ -2,14 +2,26 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 
-
 public class Client
 {
     public static final int PORT = 9001;
     public static final int BUFFSIZE = 100;
     public static final int NAMESIZE = 20;
 
+
     static DatagramSocket sockfd;
+    static PrintWriter logFile;
+    static String localIP = "127.0.0.1";
+
+
+    public static synchronized void logMessage(String direction, String actionInfo, String fromIP, String toIP)
+    {
+        if (logFile != null)
+        {
+            logFile.println("[" + direction + "] Action: " + actionInfo + " | From: " + fromIP + " | To: " + toIP);
+        }
+    }
+
 
     public static void main(String[] args) throws Exception
     {
@@ -20,6 +32,8 @@ public class Client
         System.out.print("Enter address to connect (port " + PORT + "):  ");
         String addrStr = input.nextLine();
         InetAddress server_addr = InetAddress.getByName(addrStr);
+        String serverIP = server_addr.getHostAddress();
+        localIP = InetAddress.getLocalHost().getHostAddress();
 
         sockfd = new DatagramSocket();
 
@@ -41,13 +55,17 @@ public class Client
             }
         }
 
-        //send join packet
+        // open client log file using player name
+        logFile = new PrintWriter(new FileWriter("client_log_" + name + ".txt", false), true);
+
+        // send join packet
         String msg = name + "`a`" + sequence;
         buff = msg.getBytes();
         DatagramPacket packet = new DatagramPacket(buff, buff.length, server_addr, PORT);
         sockfd.send(packet);
+        logMessage("SENT", msg, localIP, serverIP);
 
-        //start thread to receive messages from server
+        // start thread to receive messages from server
         Thread receiveThread = new Thread(new ReceiveHandler());
         receiveThread.start();
 
@@ -66,6 +84,7 @@ public class Client
                 buff = msg.getBytes();
                 packet = new DatagramPacket(buff, buff.length, server_addr, PORT);
                 sockfd.send(packet);
+                logMessage("SENT", msg, localIP, serverIP);
                 break;
             }
 
@@ -80,8 +99,10 @@ public class Client
             buff = msg.getBytes();
             packet = new DatagramPacket(buff, buff.length, server_addr, PORT);
             sockfd.send(packet);
+            logMessage("SENT", msg, localIP, serverIP);
         }
 
+        logFile.close();
         sockfd.close();
         System.exit(0);
     }
@@ -99,6 +120,7 @@ public class Client
                     sockfd.receive(recvPacket);
                     String text = new String(recvPacket.getData(), 0, recvPacket.getLength()).trim();
                     System.out.println(text);
+                    logMessage("RECV", text, recvPacket.getAddress().getHostAddress(), localIP);
                 }
                 catch (Exception e)
                 {
