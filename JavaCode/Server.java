@@ -39,14 +39,24 @@ public class Server
         System.out.println();
     }
 
-    public static Entity list_get_player(String player_name)
+    public static Node list_get_node(String player_name)
     {
         for (int i = 0; i < players.size(); i++)
         {
             if (players.get(i).player_name.equals(player_name))
             {
-                return players.get(i).me;
+                return players.get(i);
             }
+        }
+        return null;
+    }
+
+    public static Entity list_get_player(String player_name)
+    {
+        Node n = list_get_node(player_name);
+        if (n != null)
+        {
+            return n.me;
         }
         return null;
     }
@@ -71,7 +81,7 @@ public class Server
         // create room
         room = new Room(1.0, 20000, sockfd);
 
-        // start thread to run the game
+        // start thread
         room.start();
 
         // receive data from clients (joining, actions, exiting)
@@ -82,7 +92,7 @@ public class Server
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             sockfd.receive(packet);
 
-            // message -> NAME`ACTION`SEQ
+            // message consists of NAME`ACTION`SEQ
             String msg = new String(packet.getData(), 0, packet.getLength()).trim();
             int nullIdx = msg.indexOf('\0');
             if (nullIdx != -1)
@@ -99,28 +109,50 @@ public class Server
             {
                 Entity me = new Entity(player_name, 100, 100, 10, 0.6, 1000, 5000, packet.getAddress(), packet.getPort());
                 room.addPlayer(me);
-                list_add_player(player_name, 0, me);
+                list_add_player(player_name, seq, me);
                 System.out.print(player_name + " Has joined the room\nPlayers include:  ");
-                list_print_players();
-            }
-            else if (action == 'e')
-            {
-                list_remove_player(player_name);
-                room.removePlayer(player_name);
-                System.out.print(player_name + " Has left the room\nPlayers include:  ");
                 list_print_players();
             }
             else
             {
-                // send the action
-                Entity me = list_get_player(player_name);
-                if (me != null)
+                Node node = list_get_node(player_name);
+                if (node == null)
                 {
-                    me.setAction(action - '0');
+                    System.out.println("Unknown player: " + player_name);
+                    continue;
+                }
+
+                int expected = node.seq + 1;
+                if (seq > expected)
+                {
+                    System.out.println("Warning: missed packet(s) from " + player_name + " (expected seq " + expected + ", got " + seq + ")");
+                    node.seq = seq;
+                }
+                else if (seq < expected)
+                {
+                    System.out.println("Warning: out-of-order packet from " + player_name + " (expected seq " + expected + ", got " + seq + ") - discarding");
+                    continue;
+                }
+                else
+                {
+                    node.seq = seq;
+                }
+
+                if (action == 'e')
+                {
+                    list_remove_player(player_name);
+                    room.removePlayer(player_name);
+                    System.out.print(player_name + " Has left the room\nPlayers include:  ");
+                    list_print_players();
+                }
+                else
+                {
+                    // send the action
+                    node.me.setAction(action - '0');
                 }
             }
 
-
+            // for debugging
             System.out.println("Received action " + action + " from " + player_name + ", seq " + seq);
         }
     }
