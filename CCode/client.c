@@ -17,7 +17,11 @@
 #define RESET "\x1b[0m"
 
 
-int sockfd;
+int sockfd, client_port;
+FILE*log_f;
+char*serveraddrstr;
+char*clientaddrstr;
+struct sockaddr_in server_addr, client_addr;
 
 void*receive(void*arg){
     char buff2[BUFFSIZE];
@@ -25,29 +29,37 @@ void*receive(void*arg){
         bzero(buff2, BUFFSIZE);
         recvfrom(sockfd, buff2, sizeof(buff2), 0, (struct sockaddr*)NULL, NULL);
         printf(CYAN "%s" RESET "\n", buff2);
+        fprintf(log_f, CYAN "received from %s to %s: " RESET "\n\t%s\n", serveraddrstr, clientaddrstr, buff2);
+        fflush(log_f);
     }
 }
 
 int main(int argc, char**argv) {
-    struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     //int sockfd;
     int sequence=0;
     char seq_str[BUFFSIZE-NAMESIZE-5];
     char buff[BUFFSIZE];
     char name[NAMESIZE];
-
+    serveraddrstr = malloc(BUFFSIZE);
+    clientaddrstr = malloc(BUFFSIZE);
     printf(GREEN "Enter address to connect (port %d):  " RESET, PORT);
-    fgets(buff, sizeof(buff), stdin);
-    server_addr.sin_addr.s_addr = inet_addr(buff);
+    fgets(serveraddrstr, BUFFSIZE, stdin);
+    
+    int addrlen = strlen(serveraddrstr);
+    if (serveraddrstr[addrlen-1]=='\n') serveraddrstr[addrlen-1]='\0';
+    
+    server_addr.sin_addr.s_addr = inet_addr(serveraddrstr);
     server_addr.sin_port = htons(PORT);
     server_addr.sin_family = AF_INET;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
 
     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         printf("error\n");
         exit(1);
     }
+//    bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
     printf(GREEN "Enter player name (max len is %d chars):  " RESET, NAMESIZE);
     fgets(name, sizeof(name), stdin);
@@ -63,10 +75,24 @@ int main(int argc, char**argv) {
         exit(1);
     }
 
-
     if (name[namelen-1]=='\n') name[namelen-1]='\0';
+
+    char buff3[BUFFSIZE];
+    sprintf(buff3, "%s_log", name);
+    log_f = fopen(buff3, "w");
+
     sprintf(buff, "%s`a`%d", name, sequence);
     sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
+
+    socklen_t len = sizeof(client_addr);
+    bzero(&client_addr, len);
+    getsockname(sockfd, (struct sockaddr *) &client_addr, &len);
+    inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
+    client_port = ntohs(client_addr.sin_port);
+    printf("%s:%d\n", clientaddrstr, client_port);
+    
+    fprintf(log_f, GREEN "sent from %s to %s: " RESET "\n%s\n", clientaddrstr, serveraddrstr, buff);
+    fflush(log_f);
 
     pthread_t thread;
     pthread_create(&thread, NULL, receive, NULL);
@@ -91,8 +117,13 @@ int main(int argc, char**argv) {
         sprintf(buff, "%s`%c`%d", name, action, sequence);
 
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
+
+        fprintf(log_f, GREEN "sent from %s to %s: " RESET "\n%s\n", clientaddrstr, serveraddrstr, buff);
+        fflush(log_f);
     }
+
     pthread_join(thread, NULL);
     close(sockfd);
+    fclose(log_f);
     
 }
