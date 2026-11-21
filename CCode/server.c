@@ -12,6 +12,9 @@
 #define PORT 9001
 #define NAMELEN 20
 
+#define RED "\e[0;31m"
+#define COLOR_RESET "\e[0m"
+
 struct Room *room;
 
 struct node {
@@ -78,6 +81,19 @@ struct Entity*list_get_player(struct playerlist*players, char*player_name) {
     return NULL;
 }
 
+int list_get_set_seq(struct playerlist*players, char*player_name, int newseq) {
+    struct node*work = players->head;
+    while (work != NULL) {
+        if (!strcmp(player_name, work->player_name)) {
+            int temp = work->seq;
+            work->seq = newseq;
+            return temp; 
+        }
+        work = work->next;
+    }
+    return -1;
+}
+ 
 
 void list_remove_player(struct playerlist*players, char*player_name) {
     if (players->head == NULL) return;
@@ -145,6 +161,12 @@ int main(int argc, char**argv) {
 //        char*m = "test test received\n";
 //        sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
 
+        //see if packet is out of order or not
+        int testseq = list_get_set_seq(&players, player_name, seq);
+//        printf("expected %d received %d\n", testseq+1, seq);
+        if (testseq+1 < seq) printf(RED "Warning, missing packet from %s\n" COLOR_RESET, player_name);
+        else if (testseq+1 > seq) printf(RED "Warning, out-of-order packet from %s\n" COLOR_RESET, player_name);
+
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
             struct sockaddr_in*copy = malloc(sizeof(client_addr)); //remember to free this later
@@ -152,7 +174,7 @@ int main(int argc, char**argv) {
             //I added the client connection info to this data for ease of sending info back to client
             initialize_entity(me,player_name,100,100,10,0.6,1000,5000, copy, sizeof(client_addr));
             add_player(room, me);
-            list_add_player(&players, player_name, 0,  me);
+            list_add_player(&players, player_name, seq,  me);
             printf("%s Has joined the room\nPlayers include:  ", player_name);
             list_print_players(&players);
         } else if (action=='e'){
