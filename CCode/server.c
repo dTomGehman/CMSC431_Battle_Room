@@ -13,7 +13,8 @@
 #define NAMELEN 20
 
 #define RED "\e[0;31m"
-#define COLOR_RESET "\e[0m"
+#define GREEN "\e[0;32m"
+#define RESET "\e[0m"
 
 struct Room *room;
 
@@ -120,6 +121,7 @@ void list_remove_player(struct playerlist*players, char*player_name) {
 
 
 int main(int argc, char**argv) {
+    printf(GREEN "Starting game, waiting for players to connect\n" RESET);
 
     //create list
     struct playerlist players;
@@ -164,8 +166,8 @@ int main(int argc, char**argv) {
         //see if packet is out of order or not
         int testseq = list_get_set_seq(&players, player_name, seq);
 //        printf("expected %d received %d\n", testseq+1, seq);
-        if (testseq+1 < seq) printf(RED "Warning, missing packet from %s\n" COLOR_RESET, player_name);
-        else if (testseq+1 > seq) printf(RED "Warning, out-of-order packet from %s\n" COLOR_RESET, player_name);
+        if (testseq+1 < seq) printf(RED "Warning, missing packet from %s\n" RESET, player_name);
+        else if (testseq+1 > seq) printf(RED "Warning, out-of-order packet from %s\n" RESET, player_name);
 
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
@@ -177,6 +179,7 @@ int main(int argc, char**argv) {
             list_add_player(&players, player_name, seq,  me);
             printf("%s Has joined the room\nPlayers include:  ", player_name);
             list_print_players(&players);
+            printf("\n");
         } else if (action=='e'){
             //note:  this removes the player from this thread's list
             //but the other thread will keep the player in the game as a ghost of sorts

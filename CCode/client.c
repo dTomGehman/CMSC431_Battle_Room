@@ -11,6 +11,11 @@
 #define PORT 9001
 #define BUFFSIZE 100
 #define NAMESIZE 20
+#define CYAN  "\x1b[36m"
+#define GREEN  "\x1b[32m"
+#define RED  "\x1b[31m"
+#define RESET "\x1b[0m"
+
 
 int sockfd;
 
@@ -19,7 +24,7 @@ void*receive(void*arg){
     while(1){
         bzero(buff2, BUFFSIZE);
         recvfrom(sockfd, buff2, sizeof(buff2), 0, (struct sockaddr*)NULL, NULL);
-        puts(buff2);
+        printf(CYAN "%s" RESET "\n", buff2);
     }
 }
 
@@ -32,7 +37,7 @@ int main(int argc, char**argv) {
     char buff[BUFFSIZE];
     char name[NAMESIZE];
 
-    printf("Enter address to connect (port %d):  ", PORT);
+    printf(GREEN "Enter address to connect (port %d):  " RESET, PORT);
     fgets(buff, sizeof(buff), stdin);
     server_addr.sin_addr.s_addr = inet_addr(buff);
     server_addr.sin_port = htons(PORT);
@@ -44,16 +49,16 @@ int main(int argc, char**argv) {
         exit(1);
     }
 
-    printf("Enter player name (max len is %d chars):  ", NAMESIZE);
+    printf(GREEN "Enter player name (max len is %d chars):  " RESET, NAMESIZE);
     fgets(name, sizeof(name), stdin);
     int namelen = strlen(name);
     if (namelen<2) {
-        fprintf(stderr, "Bad name--must not be empty\n");
+        fprintf(stderr, RED "Bad name--must not be empty\n" RESET);
         close(sockfd);
         exit(1);
     }
     for (int x = 0; x < namelen; x++) if (name[x] == '`') {
-        fprintf(stderr, "Bad name--please don't use backquotes (`)\n");
+        fprintf(stderr, RED "Bad name--please don't use backquotes (`)\n" RESET);
         close(sockfd);
         exit(1);
     }
@@ -66,8 +71,8 @@ int main(int argc, char**argv) {
     pthread_t thread;
     pthread_create(&thread, NULL, receive, NULL);
  
-    printf("\nEnter actions (0/1/2) or e to exit\n");
-    printf(" 0:Defend 1:Attack 2:Heal\n");
+    printf(GREEN "\nEnter actions (0/1/2) or e to exit\n");
+    printf(" 0:Defend 1:Attack 2:Heal\n" RESET);
     char action;
     while(1){
         scanf(" %c", &action); 
@@ -79,10 +84,9 @@ int main(int argc, char**argv) {
         }
  
         if (action < '0' || action > '2') {
-            fprintf(stderr, "Error:  enter a single char:  0, 1, 2, or e\n");
+            fprintf(stderr, RED "Error:  enter a single char:  0, 1, 2, or e\n" RESET);
             continue;
-        }
-        sequence++;
+        } sequence++;
 
         sprintf(buff, "%s`%c`%d", name, action, sequence);
 

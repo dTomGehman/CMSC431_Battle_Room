@@ -5,6 +5,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#define CYAN  "\x1b[36m"
+#define GREEN  "\x1b[32m"
+#define RED  "\x1b[31m"
+#define RESET "\x1b[0m"
+
 #include "room.h"
 
 #define BUFFSIZE 100
@@ -137,7 +142,7 @@
 //            bzero(buff, BUFFSIZE);
 //            strncpy(buff, room->messages[i], strlen(room->messages[i]));
             char*buff = room->messages[i];
-			printf("%s\n",buff);
+			printf(CYAN "%s\n" RESET,buff);
             for (int j=0; j<room->num_players; j++){
                 sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);
             }
