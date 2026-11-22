@@ -11,12 +11,14 @@
 
 #define PORT 9001
 #define NAMELEN 20
+#define BUFFSIZE 100
 
 #define RED "\e[0;31m"
 #define GREEN "\e[0;32m"
 #define RESET "\e[0m"
 
 struct Room *room;
+FILE*log_f;
 
 struct node {
     char player_name[NAMELEN];
@@ -36,7 +38,9 @@ void*run_game(void*arg) {
 //parse message received from client
 void parse_input(char*buffer, char*player_name, char*action, int*seq){
     //message consists of NAME`ACTION`SEQ
-    char*str = strtok(buffer, "`");
+    char temp[BUFFSIZE];
+    memcpy(temp, buffer, BUFFSIZE);
+    char*str = strtok(temp, "`");
     strncpy(player_name, str, NAMELEN);
     str = strtok(NULL, "`");
     *action = str[0];
@@ -122,6 +126,7 @@ void list_remove_player(struct playerlist*players, char*player_name) {
 
 int main(int argc, char**argv) {
     printf(GREEN "Starting game, waiting for players to connect\n" RESET);
+    log_f = fopen("server_log", "w");
 
     //create list
     struct playerlist players;
@@ -137,6 +142,7 @@ int main(int argc, char**argv) {
     server_addr.sin_family = AF_INET;
     bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
+
     //create room
     room = malloc(sizeof(struct Room));
     //added sockfd to the room so it can use the same socket
@@ -149,10 +155,12 @@ int main(int argc, char**argv) {
 
     //receive data.  this thread handles all the messages received by the server
     //messages include joining the game, sending actions, and exiting the game
-    char buffer[100];
+    char buffer[BUFFSIZE];
     char player_name[NAMELEN]; //was namelen+1
     char action;
     int seq;
+    char serveraddrstr[BUFFSIZE], clientaddrstr[BUFFSIZE];
+    inet_ntop(AF_INET, &server_addr.sin_addr, serveraddrstr, BUFFSIZE);
     len = sizeof(client_addr);
     while (1){
         int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &len);
@@ -169,6 +177,9 @@ int main(int argc, char**argv) {
         if (testseq+1 < seq) printf(RED "Warning, missing packet from %s\n" RESET, player_name);
         else if (testseq+1 > seq) printf(RED "Warning, out-of-order packet from %s\n" RESET, player_name);
 
+        inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
+        printf("client addr %s port %d server addr %s port %d\n", clientaddrstr, ntohs(client_addr.sin_port), serveraddrstr, PORT);
+
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
             struct sockaddr_in*copy = malloc(sizeof(client_addr)); //remember to free this later
@@ -178,6 +189,8 @@ int main(int argc, char**argv) {
             add_player(room, me);
             list_add_player(&players, player_name, seq,  me);
             printf("%s Has joined the room\nPlayers include:  ", player_name);
+            fprintf(log_f, GREEN "Received join from %s:\n" RESET "%s\n", player_name, buffer);
+            fflush(log_f);
             list_print_players(&players);
             printf("\n");
         } else if (action=='e'){
@@ -186,13 +199,21 @@ int main(int argc, char**argv) {
             //the original game doesn't have a clean way to remove players; I might work on that
             list_remove_player(&players, player_name);
             printf("%s Has left the room\nPlayers include:  ", player_name);
+            list_print_players(&players);
+            printf("\n");
+
+            fprintf(log_f, GREEN "Received exit from %s:\n" RESET "%s\n", player_name, buffer);
+            fflush(log_f);
 
             //hack to terminate client thread waiting for one last message
             char*m = "\n";
             sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
             sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
+
             //later I will ensure that dead players can rejoin; haven't decided on implementation
         } else {
+            fprintf(log_f, GREEN "Received action %c from %s:\n" RESET "%s\n", action, player_name, buffer);
+            fflush(log_f);
             //send the action
             struct Entity*me = list_get_player(&players, player_name);
             set_action(me, action-'0');
