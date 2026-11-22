@@ -15,6 +15,7 @@
 
 #define RED "\e[0;31m"
 #define GREEN "\e[0;32m"
+#define CYAN "\e[0;36m"
 #define RESET "\e[0m"
 
 struct Room *room;
@@ -146,7 +147,7 @@ int main(int argc, char**argv) {
     //create room
     room = malloc(sizeof(struct Room));
     //added sockfd to the room so it can use the same socket
-    initialize_room(room,1.0,20000, sockfd);
+    initialize_room(room,1.0,20000, sockfd, log_f);
 
     //thread to run the game
     //this handles the existing game function and all messages sent back to players
@@ -177,8 +178,9 @@ int main(int argc, char**argv) {
         if (testseq+1 < seq) printf(RED "Warning, missing packet from %s\n" RESET, player_name);
         else if (testseq+1 > seq) printf(RED "Warning, out-of-order packet from %s\n" RESET, player_name);
 
+        int clientport = ntohs(client_addr.sin_port);
         inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
-        printf("client addr %s port %d server addr %s port %d\n", clientaddrstr, ntohs(client_addr.sin_port), serveraddrstr, PORT);
+//        printf("client addr %s port %d server addr %s port %d\n", clientaddrstr, ntohs(client_addr.sin_port), serveraddrstr, PORT);
 
         if (action=='a') {
             struct Entity *me = malloc(sizeof(struct Entity));
@@ -189,7 +191,7 @@ int main(int argc, char**argv) {
             add_player(room, me);
             list_add_player(&players, player_name, seq,  me);
             printf("%s Has joined the room\nPlayers include:  ", player_name);
-            fprintf(log_f, GREEN "Received join from %s:\n" RESET "%s\n", player_name, buffer);
+            fprintf(log_f, GREEN "Received join on %s:%d from %s:%d as %s:\n" RESET "%s\n", serveraddrstr, PORT, clientaddrstr, clientport, player_name, buffer);
             fflush(log_f);
             list_print_players(&players);
             printf("\n");
@@ -202,17 +204,20 @@ int main(int argc, char**argv) {
             list_print_players(&players);
             printf("\n");
 
-            fprintf(log_f, GREEN "Received exit from %s:\n" RESET "%s\n", player_name, buffer);
+            fprintf(log_f, GREEN "Received exit on %s:%d from %s:%d as %s:\n" RESET "%s\n", serveraddrstr, PORT, clientaddrstr, clientport, player_name, buffer);
             fflush(log_f);
 
             //hack to terminate client thread waiting for one last message
             char*m = "\n";
             sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
             sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
+            
+            fprintf(log_f, CYAN "Sent `\\n` from %s:%d to %s:%d:\n" RESET "\n\n", serveraddrstr, PORT, clientaddrstr, clientport);
+            fflush(log_f);
 
             //later I will ensure that dead players can rejoin; haven't decided on implementation
         } else {
-            fprintf(log_f, GREEN "Received action %c from %s:\n" RESET "%s\n", action, player_name, buffer);
+            fprintf(log_f, GREEN "Received action %c on %s:%d from %s:%d as %s:\n" RESET "%s\n", action, serveraddrstr, PORT, clientaddrstr, clientport, player_name, buffer);
             fflush(log_f);
             //send the action
             struct Entity*me = list_get_player(&players, player_name);
@@ -224,6 +229,7 @@ int main(int argc, char**argv) {
     }
 
     pthread_join(th_run_game, NULL);
+    fclose(log_f);
     exit(0);
 
 }

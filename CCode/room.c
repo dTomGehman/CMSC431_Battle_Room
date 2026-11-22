@@ -4,6 +4,8 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+
 
 #define CYAN  "\x1b[36m"
 #define GREEN  "\x1b[32m"
@@ -18,7 +20,7 @@
 	int run_flag = 1;
     char buff[BUFFSIZE];
 	 
-	void initialize_room(struct Room *room, double sc, int cs, int sockfd)
+	void initialize_room(struct Room *room, double sc, int cs, int sockfd, FILE*log_f)
 	{
 		room->creatures = malloc(10*sizeof(struct Entity*));
 		room->num_creatures = 0;
@@ -33,6 +35,7 @@
 		room->check_spawn = cs;
 		room->creatureID = 1;
         room->sockfd = sockfd;
+        room->log_f = log_f;
 	}
 
     void add_creature(struct Room *room,struct Entity *creature)
@@ -139,15 +142,19 @@
 	{
 		for (int i=0;i<room->num_messages;i++)
 		{
-//            bzero(buff, BUFFSIZE);
-//            strncpy(buff, room->messages[i], strlen(room->messages[i]));
             char*buff = room->messages[i];
 			printf(CYAN "%s\n" RESET,buff);
+
+            char clientip[20];
             for (int j=0; j<room->num_players; j++){
                 sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);
+                inet_ntop(AF_INET, &room->players[j]->addr->sin_addr, clientip, 20);
+                fprintf(room->log_f, CYAN "Sent from 0.0.0.0:9001 to %s:%d: \n" RESET "%s\n", clientip, 
+                        ntohs(room->players[j]->addr->sin_port), buff);
             }
 			free(room->messages[i]);
 			room->messages[i] = NULL;
+            fflush(room->log_f);
 		}
 		room->num_messages = 0;
 	}
