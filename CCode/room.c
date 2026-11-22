@@ -80,6 +80,22 @@
 	
 	void add_player(struct Room *room, struct Entity *player)
 	{
+        for (int i=0; i<room->num_players; i++) {
+            if (strcmp(room->players[i]->name, player->name)==0) { //player already exists, rejoin
+                //if this player happens to be dead, revive them
+                if (room->players[i]->health !=0) player->health = room->players[i]->health;
+                free(room->players[i]);
+                room->players[i] = player;
+
+                char *msg = malloc((strlen(player->name)+24)*sizeof(char));
+                msg[0] = '\0';
+                strcpy(msg,player->name);
+                strcat(msg," has rejoined the room.");
+                add_message(room,msg);
+                
+                return;
+            }
+        }
 		room->players[room->num_players] = player;
 		room->num_players++;
 		if (room->num_players == room->max_players)

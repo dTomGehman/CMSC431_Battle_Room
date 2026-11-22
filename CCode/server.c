@@ -190,9 +190,9 @@ int main(int argc, char**argv) {
             initialize_entity(me,player_name,100,100,10,0.6,1000,5000, copy, sizeof(client_addr));
             add_player(room, me);
             list_add_player(&players, player_name, seq,  me);
-            printf("%s Has joined the room\nPlayers include:  ", player_name);
             fprintf(log_f, GREEN "Received join on %s:%d from %s:%d as %s:\n" RESET "%s\n", serveraddrstr, PORT, clientaddrstr, clientport, player_name, buffer);
             fflush(log_f);
+            printf("%s Has joined the room\nActive players include:  ", player_name);
             list_print_players(&players);
             printf("\n");
         } else if (action=='e'){
