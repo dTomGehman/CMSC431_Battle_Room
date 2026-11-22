@@ -186,6 +186,11 @@ int main(int argc, char**argv) {
             //the original game doesn't have a clean way to remove players; I might work on that
             list_remove_player(&players, player_name);
             printf("%s Has left the room\nPlayers include:  ", player_name);
+
+            //hack to terminate client thread waiting for one last message
+            char*m = "\n";
+            sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
+            sendto(sockfd, m, strlen(m), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
             //later I will ensure that dead players can rejoin; haven't decided on implementation
         } else {
             //send the action
