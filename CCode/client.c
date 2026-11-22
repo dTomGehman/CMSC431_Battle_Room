@@ -122,7 +122,7 @@ int main(int argc, char**argv) {
 
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
 
-        fprintf(log_f, GREEN "sent action %d from %s:%d to %s:%d: " RESET "\n%s\n", action, clientaddrstr, client_port, serveraddrstr, PORT, buff);
+        fprintf(log_f, GREEN "sent action %c from %s:%d to %s:%d: " RESET "\n%s\n", action, clientaddrstr, client_port, serveraddrstr, PORT, buff);
         fflush(log_f);
     }
 
