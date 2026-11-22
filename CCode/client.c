@@ -17,7 +17,7 @@
 #define RESET "\x1b[0m"
 
 
-int sockfd, client_port;
+int sockfd, client_port, playing;
 FILE*log_f;
 char*serveraddrstr;
 char*clientaddrstr;
@@ -25,11 +25,11 @@ struct sockaddr_in server_addr, client_addr;
 
 void*receive(void*arg){
     char buff2[BUFFSIZE];
-    while(1){
+    while(playing){
         bzero(buff2, BUFFSIZE);
         recvfrom(sockfd, buff2, sizeof(buff2), 0, (struct sockaddr*)NULL, NULL);
         printf(CYAN "%s" RESET "\n", buff2);
-        fprintf(log_f, CYAN "received from %s to %s: " RESET "\n\t%s\n", serveraddrstr, clientaddrstr, buff2);
+        fprintf(log_f, CYAN "received from %s:%d to %s:%d: " RESET "\n%s\n", serveraddrstr, PORT, clientaddrstr, client_port, buff2);
         fflush(log_f);
     }
 }
@@ -89,10 +89,12 @@ int main(int argc, char**argv) {
     getsockname(sockfd, (struct sockaddr *) &client_addr, &len);
     inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
     client_port = ntohs(client_addr.sin_port);
-    printf("%s:%d\n", clientaddrstr, client_port);
+    //printf("%s:%d\n", clientaddrstr, client_port);
     
-    fprintf(log_f, GREEN "sent from %s to %s: " RESET "\n%s\n", clientaddrstr, serveraddrstr, buff);
+    fprintf(log_f, GREEN "sent from %s:%d to %s:%d: (add player)" RESET "\n%s\n", clientaddrstr, client_port, serveraddrstr, PORT, buff);
     fflush(log_f);
+
+    playing=1;
 
     pthread_t thread;
     pthread_create(&thread, NULL, receive, NULL);
@@ -106,6 +108,8 @@ int main(int argc, char**argv) {
         if (action=='e') {
             sprintf(buff, "%s`e`%d", name, ++sequence);
             sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
+            fprintf(log_f, GREEN "sent from %s:%d to %s:%d: (exit)" RESET "\n%s\n", clientaddrstr, client_port, serveraddrstr, PORT, buff);
+            fflush(log_f);
             break;
         }
  
@@ -118,10 +122,11 @@ int main(int argc, char**argv) {
 
         sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
 
-        fprintf(log_f, GREEN "sent from %s to %s: " RESET "\n%s\n", clientaddrstr, serveraddrstr, buff);
+        fprintf(log_f, GREEN "sent action %d from %s:%d to %s:%d: " RESET "\n%s\n", action, clientaddrstr, client_port, serveraddrstr, PORT, buff);
         fflush(log_f);
     }
 
+    playing=0;
     pthread_join(thread, NULL);
     close(sockfd);
     fclose(log_f);
