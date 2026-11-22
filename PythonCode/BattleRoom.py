@@ -5,6 +5,7 @@ def currentTimeMillis():
     return int(round(time.time()*1000))    
 
 class Entity:
+    __addr = "None"
     __name = "None"
     __health = 100
     __max_health = 100
@@ -27,7 +28,7 @@ class Entity:
     __action = -1 # Ideally would have an enum for this
 	
 
-    def __init__(self, n, h, mh, d, hc, ar, hr):
+    def __init__(self, n, h, mh, d, hc, ar, hr, addr):
         self.__name = str(n)
         self.__health = int(h)
         self.__max_health = int(mh)
@@ -36,7 +37,7 @@ class Entity:
         self.__attack_rate = int(ar)
         self.__heal_rate = int(hr)
         self.__start_time = currentTimeMillis()
-	
+        self.__addr = addr	
     def getAction(self):
         return self.__action
 	
@@ -57,6 +58,9 @@ class Entity:
 	
     def getLastHeal(self):
         return self.__last_heal
+
+    def getAddr(self):
+        return self.__addr
 	
     def getName(self):
         return self.__name
@@ -99,13 +103,20 @@ class Room:
     __presentTime = 0
     __creatureID = 1
 	
-    def __init__(self, sc, cs):
+    def __init__(self, sc, cs, sock):
         self.__spawn_chance = sc;
         self.__check_spawn = cs;
+        self.__sock = sock
 
     def addCreature(self, creature):
         self.__creatures.append(creature)
         self.__messages.append(creature.getName()+" has entered the room.")
+    def removePlayer(self, name):
+        for index, player in enumerate(self.__players):
+            if player.getName() == name:
+                self.__players.pop(index)
+                self.__messages.append(name + " has left the room.")
+                return
         
     def addPlayer(self, player):
         self.__players.append(player)
@@ -126,7 +137,7 @@ class Room:
         if ((self.__presentTime - lastSpawnCheck) > self.__check_spawn): 
             check = random.random()
             if (self.__spawn_chance > check) :
-                creature = Entity("Creature"+str(self.__creatureID),100,100,10,0.6,1000,5000)
+                creature = Entity("Creature"+str(self.__creatureID),100,100,10,0.6,1000,5000, "None")
                 self.addCreature(creature)
                 self.__creatureID += 1
             lastSpawnCheck = self.__presentTime
@@ -135,7 +146,11 @@ class Room:
     def printMessages(self):
         while (len(self.__messages) > 0):
             msg = self.__messages.pop(0)
-            print(msg)
+            CYAN = "\x1b[36m"
+            RESET = "\x1b[0m"
+            print(CYAN + msg + RESET)
+            for player in self.__players:
+                self.__sock.sendto(msg.encode('ascii'), player.getAddr())
 
     def process(self):
         self.processActions(self.__players,self.__creatures)
@@ -173,8 +188,8 @@ class Room:
 
 run = True
 
-def createRoom(spawn_chance,check_spawn):
-    return Room(spawn_chance,check_spawn)
+def createRoom(spawn_chance,check_spawn, sock):
+    return Room(spawn_chance,check_spawn, sock)
 
 def runGame(room):
     global run
@@ -187,5 +202,3 @@ def runGame(room):
         room.process()		
         room.updateCreatureAction()
         room.printMessages()
-
-
