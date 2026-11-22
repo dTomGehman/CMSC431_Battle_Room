@@ -23,6 +23,11 @@ char*serveraddrstr;
 char*clientaddrstr;
 struct sockaddr_in server_addr, client_addr;
 
+int sequence;
+char seq_str[BUFFSIZE-NAMESIZE-5];
+char buff[BUFFSIZE];
+char name[NAMESIZE];
+
 void*receive(void*arg){
     char buff2[BUFFSIZE];
     while(playing){
@@ -34,52 +39,9 @@ void*receive(void*arg){
     }
 }
 
-int main(int argc, char**argv) {
-    bzero(&server_addr, sizeof(server_addr));
-    //int sockfd;
-    int sequence=0;
-    char seq_str[BUFFSIZE-NAMESIZE-5];
-    char buff[BUFFSIZE];
-    char name[NAMESIZE];
-    serveraddrstr = malloc(BUFFSIZE);
-    clientaddrstr = malloc(BUFFSIZE);
-    printf(GREEN "Enter address to connect (port %d):  " RESET, PORT);
-    fgets(serveraddrstr, BUFFSIZE, stdin);
-    
-    int addrlen = strlen(serveraddrstr);
-    if (serveraddrstr[addrlen-1]=='\n') serveraddrstr[addrlen-1]='\0';
-    
-    server_addr.sin_addr.s_addr = inet_addr(serveraddrstr);
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_family = AF_INET;
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-
-    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        printf("error\n");
-        exit(1);
-    }
-//    bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
-    printf(GREEN "Enter player name (max len is %d chars):  " RESET, NAMESIZE);
-    fgets(name, sizeof(name), stdin);
-    int namelen = strlen(name);
-    if (namelen<2) {
-        fprintf(stderr, RED "Bad name--must not be empty\n" RESET);
-        close(sockfd);
-        exit(1);
-    }
-    for (int x = 0; x < namelen; x++) if (name[x] == '`') {
-        fprintf(stderr, RED "Bad name--please don't use backquotes (`)\n" RESET);
-        close(sockfd);
-        exit(1);
-    }
-
-    if (name[namelen-1]=='\n') name[namelen-1]='\0';
-
-    char buff3[BUFFSIZE];
-    sprintf(buff3, "%s_log", name);
-    log_f = fopen(buff3, "w");
+void runner() {
+    sequence = 0;
 
     sprintf(buff, "%s`a`%d", name, sequence);
     sendto(sockfd, buff, sizeof(buff), 0, (struct sockaddr*)NULL, sizeof(server_addr));
@@ -89,7 +51,6 @@ int main(int argc, char**argv) {
     getsockname(sockfd, (struct sockaddr *) &client_addr, &len);
     inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
     client_port = ntohs(client_addr.sin_port);
-    //printf("%s:%d\n", clientaddrstr, client_port);
     
     fprintf(log_f, GREEN "sent from %s:%d to %s:%d: (add player)" RESET "\n%s\n", clientaddrstr, client_port, serveraddrstr, PORT, buff);
     fflush(log_f);
@@ -128,7 +89,62 @@ int main(int argc, char**argv) {
 
     playing=0;
     pthread_join(thread, NULL);
+
+    printf("Play again?  (y/n):\n");
+    char in[10];
+    fgets(in, 10, stdin);
+    fgets(in, 10, stdin);
+    if (!strcmp(in, "y\n")) {
+        printf("ok\n");
+        runner();
+    }
+}
+
+int main() {
+    bzero(&server_addr, sizeof(server_addr));
+    //int sockfd;
+    serveraddrstr = malloc(BUFFSIZE);
+    clientaddrstr = malloc(BUFFSIZE);
+    printf(GREEN "Enter address to connect (port %d):  " RESET, PORT);
+    fgets(serveraddrstr, BUFFSIZE, stdin);
+    
+    int addrlen = strlen(serveraddrstr);
+    if (serveraddrstr[addrlen-1]=='\n') serveraddrstr[addrlen-1]='\0';
+    
+    server_addr.sin_addr.s_addr = inet_addr(serveraddrstr);
+    server_addr.sin_port = htons(PORT);
+    server_addr.sin_family = AF_INET;
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+
+    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        printf("error\n");
+        exit(1);
+    }
+
+    printf(GREEN "Enter player name (max len is %d chars):  " RESET, NAMESIZE);
+    fgets(name, sizeof(name), stdin);
+    int namelen = strlen(name);
+    if (namelen<2) {
+        fprintf(stderr, RED "Bad name--must not be empty\n" RESET);
+        close(sockfd);
+        exit(1);
+    }
+    for (int x = 0; x < namelen; x++) if (name[x] == '`') {
+        fprintf(stderr, RED "Bad name--please don't use backquotes (`)\n" RESET);
+        close(sockfd);
+        exit(1);
+    }
+
+    if (name[namelen-1]=='\n') name[namelen-1]='\0';
+
+    char buff3[BUFFSIZE];
+    sprintf(buff3, "%s_log", name);
+    log_f = fopen(buff3, "w");
+
+    runner();
+
+
     close(sockfd);
     fclose(log_f);
-    
 }
