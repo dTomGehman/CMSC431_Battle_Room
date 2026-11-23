@@ -9,6 +9,10 @@ GREEN = "\x1b[1;32m"
 RESET = "\x1b[0m"
 # Global vars
 players = []
+# Callback for letting us know when a player dies in room
+def on_player_death(player):
+    remove_player(player.getName())
+
 def run_game(room):
     BattleRoom.runGame(room) 
 def set_get_seq(player_name, seq):
@@ -51,7 +55,7 @@ print(GREEN + "Starting game, waiting for players to connect" + RESET);
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM,0)
 sock.bind(('',PORT))
 # Create room and spawn a thread to run it
-room = BattleRoom.createRoom(1.0,20000,sock)
+room = BattleRoom.createRoom(4.0,20000,sock,on_player_death)
 t = threading.Thread(target=run_game, args=(room,))
 t.start()
 # Main thread, handles message sending / actions packets

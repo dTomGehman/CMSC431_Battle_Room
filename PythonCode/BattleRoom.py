@@ -1,6 +1,5 @@
 import time
 import random
-import server
 
 def currentTimeMillis():
     return int(round(time.time()*1000))    
@@ -96,6 +95,7 @@ class Entity:
 # There should only be one of these running as the server and players can connect to it.
 # So each team will need to make a Java/C/Python Server and client that can connec to any of the servers.
 class Room:
+    __death_callback = None
     __creatures = []
     __players = []
     __messages = []
@@ -107,7 +107,8 @@ class Room:
     __presentTime = 0
     __creatureID = 1
 	
-    def __init__(self, sc, cs, sock):
+    def __init__(self, sc, cs, sock, callback):
+        self.__death_callback = callback
         self.__spawn_chance = sc;
         self.__check_spawn = cs;
         self.__sock = sock
@@ -145,9 +146,10 @@ class Room:
         attacker.setLastAttack(self.__presentTime);
         if (target.getHealth() == 0):
             # When we kill a player, also remove from server list
-            popped = options.pop(index)
-            server.remove_player(popped.getName())
             self.__messages.append(target.getName()+" killed.")
+            self.printMessages()
+            popped = options.pop(index)
+            self.__death_callback(popped)
 
     def checkCreatureSpawn(self,lastSpawnCheck):
         if ((self.__presentTime - lastSpawnCheck) > self.__check_spawn): 
@@ -204,8 +206,8 @@ class Room:
 
 run = True
 
-def createRoom(spawn_chance,check_spawn, sock):
-    return Room(spawn_chance,check_spawn, sock)
+def createRoom(spawn_chance, check_spawn, sock, callback):
+    return Room(spawn_chance, check_spawn, sock, callback)
 
 def runGame(room):
     global run
