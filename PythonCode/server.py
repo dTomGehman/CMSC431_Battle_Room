@@ -66,6 +66,12 @@ def log_packet(src, content, dst, is_action=False):
     src_str = f"{src[0]}:{src[1]}" if isinstance(src, tuple) else src
     dst_str = f"{dst[0]}:{dst[1]}" if isinstance(dst, tuple) else dst
 
+    if isinstance(dst, tuple) and dst[0] == "0.0.0.0":
+        dst_str = f"{socket.gethostbyname(socket.gethostname())}:{dst[1]}"
+
+    if isinstance(src, tuple) and src[0] == "0.0.0.0":
+        src_str = f"{socket.gethostbyname(socket.gethostname())}:{src[1]}"
+
     if is_action:
         log_file.write(f"{src_str} sent {content} to {dst_str}\n")
     else:
