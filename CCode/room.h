@@ -27,9 +27,10 @@ struct Room
 	
 	int creatureID;
     int sockfd;
+    FILE*log_f;
 };
 
-void initialize_room(struct Room *room, double sc, int cs, int sockfd);
+void initialize_room(struct Room *room, double sc, int cs, int sockfd, FILE*log_f);
 void add_creature(struct Room *room,struct Entity *creature);
 void add_message(struct Room *room,char *msg);
 void add_player(struct Room *room, struct Entity *player);

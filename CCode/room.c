@@ -4,6 +4,13 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+
+
+#define CYAN  "\x1b[36m"
+#define GREEN  "\x1b[32m"
+#define RED  "\x1b[31m"
+#define RESET "\x1b[0m"
 
 #include "room.h"
 
@@ -13,7 +20,7 @@
 	int run_flag = 1;
     char buff[BUFFSIZE];
 	 
-	void initialize_room(struct Room *room, double sc, int cs, int sockfd)
+	void initialize_room(struct Room *room, double sc, int cs, int sockfd, FILE*log_f)
 	{
 		room->creatures = malloc(10*sizeof(struct Entity*));
 		room->num_creatures = 0;
@@ -28,6 +35,7 @@
 		room->check_spawn = cs;
 		room->creatureID = 1;
         room->sockfd = sockfd;
+        room->log_f = log_f;
 	}
 
     void add_creature(struct Room *room,struct Entity *creature)
@@ -72,6 +80,22 @@
 	
 	void add_player(struct Room *room, struct Entity *player)
 	{
+        for (int i=0; i<room->num_players; i++) {
+            if (strcmp(room->players[i]->name, player->name)==0) { //player already exists, rejoin
+                //if this player happens to be dead, revive them
+                if (room->players[i]->health !=0) player->health = room->players[i]->health;
+                free(room->players[i]);
+                room->players[i] = player;
+
+                char *msg = malloc((strlen(player->name)+24)*sizeof(char));
+                msg[0] = '\0';
+                strcpy(msg,player->name);
+                strcat(msg," has rejoined the room.");
+                add_message(room,msg);
+                
+                return;
+            }
+        }
 		room->players[room->num_players] = player;
 		room->num_players++;
 		if (room->num_players == room->max_players)
@@ -115,17 +139,22 @@
 		attacker->last_attack = present_time;
 		if (target->health == 0)
 		{
+            msg = malloc((strlen(target->name)+9)*sizeof(char));
+			msg[0] = '\0';
+		    strcpy(msg,target->name);
+		    strcat(msg," killed.");
+			add_message(room,msg);
+            print_messages(room);
+            
+            //commented this out as the main thread will free instead
+			//free(target);
+
 			options[index] = NULL;
 			for (int i=index;i<*num_options;i++)
 			{
 			    options[i] = options[i+1];
 			}
-			msg = malloc((strlen(target->name)+9)*sizeof(char));
-			msg[0] = '\0';
-		    strcpy(msg,target->name);
-		    strcat(msg," killed.");
-			add_message(room,msg);
-			free(target);
+
 			(*num_options)--;
 		}	
 	}
@@ -134,15 +163,19 @@
 	{
 		for (int i=0;i<room->num_messages;i++)
 		{
-//            bzero(buff, BUFFSIZE);
-//            strncpy(buff, room->messages[i], strlen(room->messages[i]));
             char*buff = room->messages[i];
-			printf("%s\n",buff);
+			printf(CYAN "%s\n" RESET,buff);
+
+            char clientip[20];
             for (int j=0; j<room->num_players; j++){
                 sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);
+                inet_ntop(AF_INET, &room->players[j]->addr->sin_addr, clientip, 20);
+                fprintf(room->log_f, CYAN "Sent from 0.0.0.0:9001 to %s:%d: \n" RESET "%s\n", clientip, 
+                        ntohs(room->players[j]->addr->sin_port), buff);
             }
 			free(room->messages[i]);
 			room->messages[i] = NULL;
+            fflush(room->log_f);
 		}
 		room->num_messages = 0;
 	}
