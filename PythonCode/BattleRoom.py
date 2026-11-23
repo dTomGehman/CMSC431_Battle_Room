@@ -1,5 +1,6 @@
 import time
-import random;
+import random
+import server
 
 def currentTimeMillis():
     return int(round(time.time()*1000))    
@@ -114,27 +115,27 @@ class Room:
     def addCreature(self, creature):
         self.__creatures.append(creature)
         self.__messages.append(creature.getName()+" has entered the room.")
-    def removePlayer(self, name):
-        for index, player in enumerate(self.__players):
-            if player.getName() == name:
-                # Message all players incl removed about exit
-                #for player in self.__players:
-                #    self.__sock.sendto(f"{name} has left the room"}.encode('ascii'), player.getAddr())
-                # remove player
-                self.__players.pop(index)
-                # print to server cli
-                self.__messages.append(name + " has left the room.")
-                return
-        
+    #def removePlayer(self, name):
+    #    for index, player in enumerate(self.__players):
+    #        if player.getName() == name:
+    #            self.__players.pop(index)
+    #            self.__messages.append(name + " has left the room.")
+    def getPlayer(self, name):
+        for index,existing_plyr in enumerate(self.__players):
+            if existing_plyr.getName() == name:
+                return index,existing_plyr
+        return None,None
     def addPlayer(self, player):
-        # If a player already exists, the server passes the new ver to overwrite with.
-        for existing_plyr in self.__players:
-            if existing_plyr.getName() == player.getName():
-                existing_plyr = player
-                return 
-        self.__players.append(player)
-        self.__messages.append(player.getName()+" has entered the room.")
-	
+        index,_cur_player = self.getPlayer(player.getName())
+        # New player passed by server, add to room.
+        if index == None:
+            self.__players.append(player)
+            self.__messages.append(player.getName()+" has entered the room.")
+        # Living player passed to replace dead player.
+        else:
+            self.__players.pop(index)
+            self.__players.append(player)
+            self.__messages.append(player.getName()+" has re-entered the room.")
     def attackRandomEntity(self, attacker, options):
         index = (int)(random.random()*len(options))
         target = options[index]
@@ -143,7 +144,9 @@ class Room:
         self.__messages.append(attacker.getName()+" attacked "+target.getName()+" doing "+str(targetHealth - target.getHealth())+" damage.")
         attacker.setLastAttack(self.__presentTime);
         if (target.getHealth() == 0):
-            options.pop(index)
+            # When we kill a player, also remove from server list
+            popped = options.pop(index)
+            server.remove_player(popped.getName())
             self.__messages.append(target.getName()+" killed.")
 
     def checkCreatureSpawn(self,lastSpawnCheck):
