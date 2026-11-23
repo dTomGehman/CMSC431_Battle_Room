@@ -1,3 +1,8 @@
+
+"""
+Author: Daniel Morine
+Purpose: This is the main game core of the text game project, written by Dr.Girard with edits from Daniel Morine.
+"""
 import time
 import random
 
@@ -95,6 +100,7 @@ class Entity:
 # There should only be one of these running as the server and players can connect to it.
 # So each team will need to make a Java/C/Python Server and client that can connec to any of the servers.
 class Room:
+    # This is to communicate back to the server
     __death_callback = None
     __creatures = []
     __players = []

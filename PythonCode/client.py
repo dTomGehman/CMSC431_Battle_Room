@@ -1,3 +1,7 @@
+"""
+Author: Daniel Morine
+Purpose: This is the client for the UDP MUD inspired game.  Entirely authored by Daniel Morine using python.org and man pages for research.
+"""
 import BattleRoom
 import socket
 import ipaddress
@@ -8,6 +12,9 @@ NAMESIZE = 20
 playing = True
 again = True
 
+######## Functions ########
+#// Author: Daniel Morine
+#// Purpose: get the ip of the player and ensure its formatted properly
 def get_server_ip():
     while True:
         try:
@@ -18,6 +25,8 @@ def get_server_ip():
             return ipaddr
         except ValueError:
             print("Incorrect formatting, retrying...")
+#// Author: Daniel Morine
+#// Purpose: get the name of the player ensure formatting
 def get_player_name():
     print("Enter your player name (20 chars max)")
     while True:
@@ -25,6 +34,8 @@ def get_player_name():
         if not name == '' and not '`' in name:
             return name
         print("Name is empty or contains backticks. Retrying...")
+#// Author: Daniel Morine
+#// Purpose: get the name of the player action + ensure formatting
 def get_action():
     while True:
         action = input().strip() 
@@ -33,6 +44,8 @@ def get_action():
         if action in {'e', '0', '1', '2'}:
             return action
         print("Error: Invalid action chosen.")
+#// Author: Daniel Morine
+#// Purpose: Threaded, receives data
 def recv_data(sock):
     while playing:
         data = sock.recv(100).decode('ascii').rstrip('\0')
@@ -52,7 +65,8 @@ t.start()
 print("Enter actions (0/1/2) or e to exit")
 print("0:Defend 1:Attack 2:Heal")
 
-# Get player actions
+#// Author: Daniel Morine
+#// Purpose: Main loop, handles player quit/rejoin and sending actions.
 while True:
     action = get_action()
     if action == 'e':
@@ -76,7 +90,5 @@ while True:
         sequence += 1
         bytestr = f"{player_name}`{action}`{sequence}".encode('ascii')
         sock.send(bytestr)
-# Flag to stop our recv_thread from looping eternally.
-# Join the thread
 print("Closing socket...")
 sock.close()

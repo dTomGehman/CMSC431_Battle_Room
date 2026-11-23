@@ -1,3 +1,7 @@
+"""
+Author: Daniel Morine (same references as client.py)
+Purpose: This is the server code, it creates a UDP socket to receive data from multiple clients and manages the game core in response to what it receives.  Messages are sent in the game core itself.
+"""
 import BattleRoom
 import socket
 import threading
@@ -9,10 +13,11 @@ GREEN = "\x1b[1;32m"
 RESET = "\x1b[0m"
 # Global vars
 players = []
-# Callback for letting us know when a player dies in room
+
+#// Author: Daniel Morine
+#// on_player_death is a callback we pass to the game core to inform us of player deaths, run_game starts the game core, and set_get_seq updates sequence number and returns the old value.
 def on_player_death(player):
     remove_player(player.getName())
-
 def run_game(room):
     BattleRoom.runGame(room) 
 def set_get_seq(player_name, seq):
@@ -22,12 +27,14 @@ def set_get_seq(player_name, seq):
     retval = player["seq"]
     player["seq"] = seq
     return retval
+# Author: Daniel Morine
 def get_player(name):
     for player in players:
         if name in player:
             return player[name]
     return None
-# Unconditionally add player to server list.
+##// Author: Daniel Morine
+# Purpose: Unconditionally add player to server list.
 # For the room, it depends on if a ghost exists already.
 def add_player(room,name,seq,addr):
     room_player = room.getPlayer(name)[1]
@@ -45,7 +52,7 @@ def add_player(room,name,seq,addr):
             new_entity = BattleRoom.Entity(name,cur_health,100,10,.6,1000,5000,addr)
             players.append({name: {"seq":seq, "entity":new_entity}})
             room.addPlayer(new_entity)
-# Removes player from server, and leave a ghost in room
+# Removes player from server, and leave a ghost in room.  Also called by the game core.
 def remove_player(name):
     for index,player in enumerate(players):
         if name in player:
@@ -83,7 +90,7 @@ while True:
         # Send a message so clients recv_thread can close
         sock.sendto("\n".encode('ascii'),addr)
         continue
-
+    # Ensure packets from dead players are ignored
     if player is None:
         print(RED + f"Warning: Player {player_name} is dead. Dropping packet." + RESET)
         continue
