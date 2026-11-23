@@ -36,7 +36,9 @@ def get_action():
 def recv_data(sock):
     while playing:
         data = sock.recv(100).decode('ascii').rstrip('\0')
-        print(data)
+        # Avoid printing end messages sent by C server
+        if data not in ('\n', '\r\n', ''):
+            print(data)
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 #sock.bind(('',PORT))
 ipaddr = get_server_ip() 
@@ -54,24 +56,27 @@ print("0:Defend 1:Attack 2:Heal")
 while True:
     action = get_action()
     if action == 'e':
-        send_new = (input("play again? [y/n]").casefold()[0] == 'y')
         sequence+=1
         bytestr = f"{player_name}`e`{sequence}".encode('ascii')
         sock.send(bytestr)
+        playing = False
         t.join()
-        print(
+        send_new = input("play again? [y/n]").casefold().startswith('y')
         if send_new:
+            sequence = 0
+            print("Sending rejoin request to server...")
             sock.send(f"{player_name}`a`{sequence}".encode('ascii'))
-            continue
-        break
-    sequence += 1
-    bytestr = f"{player_name}`{action}`{sequence}".encode('ascii')
-    sock.send(bytestr)
-    print("Finished sending action to server")
-print("Waiting on thread join...")
+            t = threading.Thread(target=recv_data,args=(sock,))
+            playing = True
+            t.start()
+        else:
+            sock.close()
+            break
+    else:
+        sequence += 1
+        bytestr = f"{player_name}`{action}`{sequence}".encode('ascii')
+        sock.send(bytestr)
 # Flag to stop our recv_thread from looping eternally.
-playing = False
 # Join the thread
-t.join()
-print("Both threads are closing")
+print("Closing socket...")
 sock.close()
