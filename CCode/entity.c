@@ -1,3 +1,10 @@
+//*******************************************************
+//entity.c
+//
+//written by Dr. Girard
+//modified by Tom Gehman
+//*******************************************************
+
 #include <string.h>
 #include <sys/socket.h>
 
@@ -21,6 +28,8 @@
 		entity->last_attack = 0;
 		entity->last_heal = 0;
 		entity->action = -1;
+
+        //***addr and addr_s added by tom gehman
         entity->addr = s;
         entity->addr_s = sst;
 	}

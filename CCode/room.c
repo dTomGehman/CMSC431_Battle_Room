@@ -1,3 +1,13 @@
+//*******************************************************
+//room.c
+//written by Dr. Girard
+//modified by Tom Gehman
+//
+//keep track of entities and their interactions, and 
+// write output.  
+//
+//Tom's changes marked with comments:  //***
+//*******************************************************
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -6,7 +16,7 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 
-
+//*** ansi colors added
 #define CYAN  "\x1b[36m"
 #define GREEN  "\x1b[32m"
 #define RED  "\x1b[31m"
@@ -34,7 +44,9 @@
 		room ->spawn_chance = sc;
 		room->check_spawn = cs;
 		room->creatureID = 1;
+        //*** added in sockfd to enable communication directly with socket
         room->sockfd = sockfd;
+        //*** added in log file
         room->log_f = log_f;
 	}
 
@@ -80,9 +92,12 @@
 	
 	void add_player(struct Room *room, struct Entity *player)
 	{
+        //***
+        //added this logic to check if a player already exists before adding them,
+        // thus allowing players to rejoin seamlessly
         for (int i=0; i<room->num_players; i++) {
             if (strcmp(room->players[i]->name, player->name)==0) { //player already exists, rejoin
-                //if this player happens to be dead, revive them
+                //if this player happens to be dead, revive them--shouldn't happen often, but can
                 if (room->players[i]->health !=0) player->health = room->players[i]->health;
                 free(room->players[i]);
                 room->players[i] = player;
@@ -96,6 +111,7 @@
                 return;
             }
         }
+
 		room->players[room->num_players] = player;
 		room->num_players++;
 		if (room->num_players == room->max_players)
@@ -139,6 +155,8 @@
 		attacker->last_attack = present_time;
 		if (target->health == 0)
 		{
+            //*** switched order of some statements to allow last messages 
+            // to be sent to the player upon death
             msg = malloc((strlen(target->name)+9)*sizeof(char));
 			msg[0] = '\0';
 		    strcpy(msg,target->name);
@@ -146,7 +164,7 @@
 			add_message(room,msg);
             print_messages(room);
             
-            //commented this out as the main thread will free instead
+            //***commented this out as the main thread will free instead
 			//free(target);
 
 			options[index] = NULL;
@@ -166,6 +184,7 @@
             char*buff = room->messages[i];
 			printf(CYAN "%s\n" RESET,buff);
 
+            //*** this code allows us to contact all clients over UDP with updates
             char clientip[20];
             for (int j=0; j<room->num_players; j++){
                 sendto(room->sockfd, buff, strlen(buff), 0, (struct sockaddr*) room->players[j]->addr, room->players[j]->addr_s);

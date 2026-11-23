@@ -8,4 +8,4 @@ bruh: $(OBJECTS)
 	$(CC) $(SOURCES) $(CFLAGS) -o battleroom
 	$(CC) client.c -o client
 clean:
-	rm -fR *o battleroom client
+	rm -fR *o battleroom client *_log

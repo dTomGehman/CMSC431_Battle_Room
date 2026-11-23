@@ -1,3 +1,10 @@
+//*******************************************************
+//room.h
+//
+//written by Dr. Girard
+//modified by Tom Gehman
+//*******************************************************
+
 #ifndef ROOM_H
 #define ROOM_H
 
@@ -26,10 +33,13 @@ struct Room
 	int check_spawn;
 	
 	int creatureID;
+    //***added by tom gehman
     int sockfd;
+    //***added by tom gehman
     FILE*log_f;
 };
 
+//***sockfd and log_f added by tom gehman
 void initialize_room(struct Room *room, double sc, int cs, int sockfd, FILE*log_f);
 void add_creature(struct Room *room,struct Entity *creature);
 void add_message(struct Room *room,char *msg);

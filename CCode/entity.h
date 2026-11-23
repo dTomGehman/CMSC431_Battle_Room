@@ -1,3 +1,10 @@
+//*******************************************************
+//entity.h
+//
+//written by Dr. Girard
+//with modifications by Tom Gehman
+//*******************************************************
+
 #ifndef ENTITY_H
 #define ENTITY_H
 
@@ -30,8 +37,9 @@ struct Entity
 	 */
 	int action;  // Ideally would have an enum for this
     
-    struct sockaddr_in *addr;
-    size_t addr_s;
+    //***added by tom gehman
+    struct sockaddr_in *addr; //socket addr, which allows the room to communicate with each player
+    size_t addr_s; //length of above
 };	
 
 void initialize_entity(struct Entity *entity, char *n, int h, int mh, int d, double hc, int ar, int hr, struct sockaddr_in*s, size_t sst);
