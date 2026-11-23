@@ -2,7 +2,6 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-
 public class Server
 {
     public static final int PORT = 9001;
@@ -93,7 +92,7 @@ public class Server
         // create socket
         DatagramSocket sockfd = new DatagramSocket(PORT);
 
-        // create room
+        //create room
         room = new Room(1.0, 20000, sockfd);
 
         //start thread to run the game
@@ -109,7 +108,7 @@ public class Server
 
             String fromIP = packet.getAddress().getHostAddress();
 
-            // message consists of NAME`ACTION`SEQ
+            //message consists of NAME`ACTION`SEQ
             String msg = new String(packet.getData(), 0, packet.getLength()).trim();
             int nullIdx = msg.indexOf('\0');
             if (nullIdx != -1)
@@ -126,6 +125,13 @@ public class Server
 
             if (action == 'a')
             {
+                //if player is rejoining after death or disconnect, clean up old entry first
+                if (list_get_node(player_name) != null)
+                {
+                    list_remove_player(player_name);
+                    room.removePlayer(player_name);
+                }
+
                 Entity me = new Entity(player_name, 100, 100, 10, 0.6, 1000, 5000, packet.getAddress(), packet.getPort());
                 room.addPlayer(me);
                 list_add_player(player_name, seq, me);
@@ -163,10 +169,16 @@ public class Server
                     room.removePlayer(player_name);
                     System.out.print(player_name + " Has left the room\nPlayers include:  ");
                     list_print_players();
+
+                    //send blank message back so C client recvfrom thread can unblock and exit
+                    byte[] bye = " ".getBytes();
+                    DatagramPacket byePacket = new DatagramPacket(bye, bye.length, packet.getAddress(), packet.getPort());
+                    sockfd.send(byePacket);
+                    logMessage("SENT", " ", localIP, fromIP);
                 }
                 else
                 {
-                    // send the action
+                    //send the action
                     node.me.setAction(action - '0');
                 }
             }
