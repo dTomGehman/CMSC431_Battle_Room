@@ -5,7 +5,8 @@ import threading
 PORT = 9001
 BUFFSIZE = 100
 NAMESIZE = 20
-
+playing = True
+again = True
 
 def get_server_ip():
     while True:
@@ -33,7 +34,7 @@ def get_action():
             return action
         print("Error: Invalid action chosen.")
 def recv_data(sock):
-    while True:
+    while playing:
         data = sock.recv(100).decode('ascii').rstrip('\0')
         print(data)
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -48,18 +49,29 @@ t = threading.Thread(target=recv_data,args=(sock,))
 t.start()
 print("Enter actions (0/1/2) or e to exit")
 print("0:Defend 1:Attack 2:Heal")
+
 # Get player actions
 while True:
     action = get_action()
     if action == 'e':
+        send_new = (input("play again? [y/n]").casefold()[0] == 'y')
         sequence+=1
         bytestr = f"{player_name}`e`{sequence}".encode('ascii')
         sock.send(bytestr)
+        t.join()
+        print(
+        if send_new:
+            sock.send(f"{player_name}`a`{sequence}".encode('ascii'))
+            continue
         break
     sequence += 1
     bytestr = f"{player_name}`{action}`{sequence}".encode('ascii')
     sock.send(bytestr)
-
+    print("Finished sending action to server")
+print("Waiting on thread join...")
+# Flag to stop our recv_thread from looping eternally.
+playing = False
 # Join the thread
 t.join()
+print("Both threads are closing")
 sock.close()

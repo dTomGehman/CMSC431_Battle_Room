@@ -2,6 +2,8 @@ import BattleRoom
 import socket
 import threading
 
+debug_var = None
+
 # Constants
 PORT = 9001
 
@@ -28,6 +30,15 @@ def get_player(name):
             return player[name]
     return None
 def add_player(room,name,seq,addr):
+    # If player exists, replace instead of add.
+    cur_player = get_player(name)
+    if cur_player != None:
+        cur_health = cur_player.getHealth()
+        # If health > 0, keep the same health val instead of resetting.
+        if cur_health > 0:
+            new_entity = (BattleRoom.Entity(name,cur_health,100,10,.6,1000,5000,addr))
+        
+
     # Add player with some other metadata to make life easier
     new_entity = (BattleRoom.Entity(name,100,100,10,.6,1000,5000,addr))
     players.append({name: {"seq":seq, "entity":new_entity}})
@@ -38,7 +49,8 @@ def remove_player(name,room):
     for index,player in enumerate(players):
         if name in player:
             players.pop(index)
-            room.removePlayer(name)
+            # Leave a ghost in room
+            #room.removePlayer(name)
 
 print(GREEN + "Starting game, waiting for players to connect" + RESET);
 # Create and bind a socket
@@ -52,10 +64,9 @@ t.start()
 while True:
     data,addr = sock.recvfrom(100)
     try:
-        data = data.decode('ascii')
+        data = data.decode('ascii').rstrip('\x00')
         player_name, action, seq = data.split('`')
         seq = int(seq)
-
     except (UnicodeDecodeError, ValueError):
         print(RED + "Warning: Malformed packet. Dropping..." + RESET)
         continue
@@ -66,7 +77,14 @@ while True:
         continue
     # Drop packets from dead players
     player = get_player(player_name)
-
+    if action == 'e':
+        remove_player(player_name,room)
+        # Want to add functionality to message other players.
+        # Might need to add socket information to this thread too.
+        #print(f"{player_name} has left the room.")
+        # Send a message so clients recv_thread can close
+        sock.sendto("end".encode('ascii'),addr)
+        continue
 
     if player is None:
         print(RED + f"Warning: Player {player_name} is dead. Dropping packet." + RESET)
@@ -86,16 +104,10 @@ while True:
         elif testseq+1 > seq:
             print(RED + f"Warning, out of order packet from {player_name}" + RESET)
 
-    if action == 'e':
-        remove_player(player_name,room)
-        # Want to add functionality to message other players.
-        # Might need to add socket information to this thread too.
-        print(f"{player_name} has left the room.")
-    else:
-        try:
-            action = int(action)
-        except ValueError:
-            print(RED + "Warning: Invalid action. Dropping..." + RESET)
-            continue
-        if player is not None:
-            player["entity"].setAction(action)
+    try:
+        action = int(action)
+    except ValueError:
+        print(RED + "Warning: Invalid action. Dropping..." + RESET)
+        continue
+    if player is not None:
+        player["entity"].setAction(action)

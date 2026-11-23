@@ -52,6 +52,9 @@ class Entity:
 	
     def getHealth(self):
         return self.__health;
+
+    def resetHealth(self):
+        self.__health = self.__max_health
 	
     def getLastAttack(self):
         return self.__last_attack
@@ -114,11 +117,21 @@ class Room:
     def removePlayer(self, name):
         for index, player in enumerate(self.__players):
             if player.getName() == name:
+                # Message all players incl removed about exit
+                #for player in self.__players:
+                #    self.__sock.sendto(f"{name} has left the room"}.encode('ascii'), player.getAddr())
+                # remove player
                 self.__players.pop(index)
+                # print to server cli
                 self.__messages.append(name + " has left the room.")
                 return
         
     def addPlayer(self, player):
+        # If a player already exists, the server passes the new ver to overwrite with.
+        for existing_plyr in self.__players:
+            if existing_plyr.getName() == player.getName():
+                existing_plyr = player
+                return 
         self.__players.append(player)
         self.__messages.append(player.getName()+" has entered the room.")
 	
