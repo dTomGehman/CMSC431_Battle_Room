@@ -113,7 +113,8 @@ class Room:
     __presentTime = 0
     __creatureID = 1
 	
-    def __init__(self, sc, cs, sock, callback):
+    def __init__(self, sc, cs, sock, callback, logger):
+        self.__logger = logger
         self.__death_callback = callback
         self.__spawn_chance = sc;
         self.__check_spawn = cs;
@@ -174,7 +175,9 @@ class Room:
             RESET = "\x1b[0m"
             print(CYAN + msg + RESET)
             for player in self.__players:
-                self.__sock.sendto(msg.encode('ascii'), player.getAddr())
+                bytestr = msg.encode('ascii')
+                self.__sock.sendto(bytestr, player.getAddr())
+                self.__logger(self.__sock.getsockname(), bytestr, player.getAddr(), is_action=False)
 
     def process(self):
         self.processActions(self.__players,self.__creatures)
@@ -212,8 +215,8 @@ class Room:
 
 run = True
 
-def createRoom(spawn_chance, check_spawn, sock, callback):
-    return Room(spawn_chance, check_spawn, sock, callback)
+def createRoom(spawn_chance, check_spawn, sock, callback, logger):
+    return Room(spawn_chance, check_spawn, sock, callback, logger)
 
 def runGame(room):
     global run

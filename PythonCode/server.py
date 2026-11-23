@@ -2,6 +2,7 @@
 Author: Daniel Morine (same references as client.py)
 Purpose: This is the server code, it creates a UDP socket to receive data from multiple clients and manages the game core in response to what it receives.  Messages are sent in the game core itself.
 """
+
 import BattleRoom
 import socket
 import threading
@@ -57,21 +58,37 @@ def remove_player(name):
     for index,player in enumerate(players):
         if name in player:
             players.pop(index)
+## Author: Daniel Morine
+## Purpose: helper to logs network data being sent
+
+log_file = open("server_log", "a", buffering=1, encoding="utf-8")
+def log_packet(src, content, dst, is_action=False):
+    src_str = f"{src[0]}:{src[1]}" if isinstance(src, tuple) else src
+    dst_str = f"{dst[0]}:{dst[1]}" if isinstance(dst, tuple) else dst
+
+    if is_action:
+        log_file.write(f"{src_str} sent {content} to {dst_str}\n")
+    else:
+        escaped = str(content).replace('\r', '\\r').replace('\n', '\\n')
+        log_file.write(f'{src_str} sent "{escaped}" to {dst_str}\n')
+
 print(GREEN + "Starting game, waiting for players to connect" + RESET);
 # Create and bind a socket
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM,0)
 sock.bind(('',PORT))
 # Create room and spawn a thread to run it
-room = BattleRoom.createRoom(4.0,20000,sock,on_player_death)
+room = BattleRoom.createRoom(4.0,20000,sock,on_player_death,log_packet)
 t = threading.Thread(target=run_game, args=(room,))
 t.start()
-# Main thread, handles message sending / actions packets
+##// Author: Daniel Morine
+##// Purpose: Main thread, handles message sending / actions packets
 while True:
     # receive/decode/parse the data
     data,addr = sock.recvfrom(100)
     try:
         data = data.decode('ascii').rstrip('\x00')
         player_name, action, seq = data.split('`')
+        log_packet(addr,data,sock.getsockname(),is_action=True)
         seq = int(seq)
     # If you actually get these, drop the exception for more details
     except (UnicodeDecodeError, ValueError):
@@ -88,7 +105,9 @@ while True:
         # Might need to add socket information to this thread too.
         #print(f"{player_name} has left the room.")
         # Send a message so clients recv_thread can close
-        sock.sendto("\n".encode('ascii'),addr)
+        bytestr = "\n".encode('ascii')
+        sock.sendto(bytestr,addr)
+        log_packet(sock.getsockname(),bytestr,addr,is_action=False)
         continue
     # Ensure packets from dead players are ignored
     if player is None:

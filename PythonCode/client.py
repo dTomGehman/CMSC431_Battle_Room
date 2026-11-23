@@ -12,6 +12,9 @@ NAMESIZE = 20
 playing = True
 again = True
 
+
+
+
 ######## Functions ########
 #// Author: Daniel Morine
 #// Purpose: get the ip of the player and ensure its formatted properly
@@ -49,17 +52,32 @@ def get_action():
 def recv_data(sock):
     while playing:
         data = sock.recv(100).decode('ascii').rstrip('\0')
+        log_packet(log_file, (ipaddr,PORT), data, sock.getsockname(),is_action=False)
+
         # Avoid printing end messages sent by C server
         if data not in ('\n', '\r\n', ''):
             print(data)
+
+def log_packet(log_file, src, content, dst, is_action=False):
+    src_str = f"{src[0]}:{src[1]}" if isinstance(src, tuple) else src
+    dst_str = f"{dst[0]}:{dst[1]}" if isinstance(dst, tuple) else dst
+
+    if is_action:
+        log_file.write(f"{src_str} sent {content} to {dst_str}\n")
+    else:
+        escaped = str(content).replace('\r', '\\r').replace('\n', '\\n')
+        log_file.write(f'{src_str} sent "{escaped}" to {dst_str}\n')
+
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 #sock.bind(('',PORT))
 ipaddr = get_server_ip() 
 sock.connect((ipaddr,PORT))
 player_name = get_player_name()
+log_file = open(f"{player_name}_log", "a", buffering=1, encoding="utf-8")
 sequence = 0
-sock.send(f"{player_name}`a`{sequence}".encode('ascii'))
-
+bytestr=f"{player_name}`a`{sequence}".encode('ascii')
+sock.send(bytestr)
+log_packet(log_file, sock.getsockname(), bytestr, (ipaddr,PORT), is_action=True)
 t = threading.Thread(target=recv_data,args=(sock,))
 t.start()
 print("Enter actions (0/1/2) or e to exit")
@@ -73,13 +91,16 @@ while True:
         sequence+=1
         bytestr = f"{player_name}`e`{sequence}".encode('ascii')
         sock.send(bytestr)
+        log_packet(log_file, sock.getsockname(), bytestr, (ipaddr,PORT), is_action=True)
         playing = False
         t.join()
         send_new = input("play again? [y/n]").casefold().startswith('y')
         if send_new:
             sequence = 0
             print("Sending rejoin request to server...")
-            sock.send(f"{player_name}`a`{sequence}".encode('ascii'))
+            bytestr = f"{player_name}`a`{sequence}".encode('ascii')
+            sock.send(bytestr)
+            log_packet(log_file, sock.getsockname(), bytestr, (ipaddr,PORT), is_action=True)
             t = threading.Thread(target=recv_data,args=(sock,))
             playing = True
             t.start()
@@ -90,5 +111,6 @@ while True:
         sequence += 1
         bytestr = f"{player_name}`{action}`{sequence}".encode('ascii')
         sock.send(bytestr)
+        log_packet(log_file, sock.getsockname(), bytestr, (ipaddr,PORT), is_action=True)
 print("Closing socket...")
 sock.close()
