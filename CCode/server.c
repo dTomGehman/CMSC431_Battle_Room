@@ -177,6 +177,7 @@ void list_remove_player(struct playerlist*players, char*player_name) {
         players->head = work->next;
         //don't free this data in case game is still using it
         //if (work->me) free(work->me);
+        if (work->me->health==0) free(work->me);
         free(work);
         return;
     }
@@ -256,6 +257,8 @@ int main(int argc, char**argv) {
         int clientport = ntohs(client_addr.sin_port);
         inet_ntop(AF_INET, &client_addr.sin_addr, clientaddrstr, BUFFSIZE);
 
+        struct Entity*me = NULL;
+
         if (action=='a') { //a(dd) new player
             struct Entity *me = malloc(sizeof(struct Entity));
             struct sockaddr_in*copy = malloc(sizeof(client_addr)); //remember to free this later
@@ -306,8 +309,12 @@ int main(int argc, char**argv) {
             fflush(log_f);
 
             //send the action.  Thread safe
-            struct Entity*me = list_get_player(&players, player_name);
-            set_action(me, action-'0');
+            me = list_get_player(&players, player_name);
+            if (me -> health != 0) {
+                set_action(me, action-'0');
+            } else {
+                printf("Ignoring action (dead): ");
+            }
         }
 
         //for debugging, helpful to see

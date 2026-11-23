@@ -139,17 +139,22 @@
 		attacker->last_attack = present_time;
 		if (target->health == 0)
 		{
+            msg = malloc((strlen(target->name)+9)*sizeof(char));
+			msg[0] = '\0';
+		    strcpy(msg,target->name);
+		    strcat(msg," killed.");
+			add_message(room,msg);
+            print_messages(room);
+            
+            //commented this out as the main thread will free instead
+			//free(target);
+
 			options[index] = NULL;
 			for (int i=index;i<*num_options;i++)
 			{
 			    options[i] = options[i+1];
 			}
-			msg = malloc((strlen(target->name)+9)*sizeof(char));
-			msg[0] = '\0';
-		    strcpy(msg,target->name);
-		    strcat(msg," killed.");
-			add_message(room,msg);
-			free(target);
+
 			(*num_options)--;
 		}	
 	}
